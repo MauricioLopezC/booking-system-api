@@ -2,7 +2,6 @@ package bookings
 
 import (
 	"fmt"
-	"slices"
 	"strconv"
 	"time"
 
@@ -40,7 +39,10 @@ func CreateBooking(c *fiber.Ctx) error {
 	//check if BookingDate match with a available schedule
 	//find schedules by EmployeeID
 	avSchedules := []model.Schedule{}
-	database.DB.Db.Where("employee_id = ?", bookingDto.EmployeeID).Find(&avSchedules)
+	database.DB.Db.Where("employee_id = ? AND week_day = ?",
+		bookingDto.EmployeeID,
+		int(bookingDto.BookingDate.Weekday()),
+	).Find(&avSchedules)
 	fmt.Println(avSchedules)
 
 	if len(avSchedules) == 0 {
@@ -50,51 +52,29 @@ func CreateBooking(c *fiber.Ctx) error {
 		})
 	}
 
-	//if booking weekday is not in avSchedules.weekday return error
-	i := slices.IndexFunc(avSchedules, func(schedule model.Schedule) bool {
-		return schedule.WeekDay == int(bookingDto.BookingDate.Weekday())
-	})
-	if i == -1 {
-		return c.Status(400).JSON(common.ErrorResponse{
-			StatusCode: 400,
-			Message:    fmt.Sprintf("Employee schedule not found for the day %s", bookingDto.BookingDate.Weekday().String()),
-		})
+	hasMatch := false
+	for _, schedule := range avSchedules {
+		bookingTime := utils.TimeOfDate(bookingDto.BookingDate)
+		scheduleStartTime := utils.TimeOfDate(schedule.StartTime)
+		scheduleEndTime := utils.TimeOfDate(schedule.EndTime)
+		if scheduleStartTime.Before(bookingTime) && scheduleEndTime.After(bookingTime) {
+			hasMatch = true
+			break
+		}
 	}
 
-	//else check the booking time in range of schedules end and start time
-	scheduleFound := avSchedules[i]
-	bookingTime := bookingDto.BookingDate
-	scheduleStartTime := scheduleFound.StartTime
-	scheduleEndTime := scheduleFound.EndTime
-
-	//check booking time > schedule StartTime
-	if result := utils.CompareTimeOnly(bookingTime, scheduleStartTime); result < 0 {
+	if !hasMatch {
 		return c.Status(400).JSON(common.ErrorResponse{
 			StatusCode: 400,
-			Message: fmt.Sprintf(
-				"Booking time must be greater than %d:%d",
-				scheduleFound.StartTime.Hour(),
-				scheduleFound.StartTime.Minute(),
-			),
-		})
-	}
-
-	//check booking time < schedule EndTime
-	if result := utils.CompareTimeOnly(bookingTime, scheduleEndTime); result > 0 {
-		return c.Status(400).JSON(common.ErrorResponse{
-			StatusCode: 400,
-			Message: fmt.Sprintf(
-				"Booking time must be less than %d:%d",
-				scheduleFound.EndTime.Hour(),
-				scheduleFound.EndTime.Minute(),
-			),
+			Message:    "Error bookingTime not match with an available schedule",
 		})
 	}
 
 	//Prevent to user to pass his own CustomerID, get his id with:
+	//FIX: bug claims["user_id"]
 	user := c.Locals("user").(*jwt.Token)
 	claims := user.Claims.(jwt.MapClaims)
-	customerId, err := strconv.Atoi(claims["string"].(string))
+	customerId, err := strconv.Atoi(claims["user_id"].(string))
 	if err != nil {
 		return c.Status(500).JSON(common.ErrorResponse{
 			StatusCode: 500,

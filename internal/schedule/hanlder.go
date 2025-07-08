@@ -2,8 +2,6 @@ package schedule
 
 import (
 	"fmt"
-	"slices"
-	"strconv"
 	"time"
 
 	"github.com/MauricioLopezC/ReservationSystem/internal/common"
@@ -43,41 +41,54 @@ func CreateSchedule(c *fiber.Ctx) error {
 	//get user info
 	user := c.Locals("user").(*jwt.Token)
 	claims := user.Claims.(jwt.MapClaims)
-	employeeId, err := strconv.Atoi(claims["string"].(string))
-	if err != nil {
-		return c.Status(500).JSON(common.ErrorResponse{
-			StatusCode: 500,
-			Message:    "Error getting user info",
-		})
-	}
-	fmt.Println("user_id: ", employeeId)
+	employeeId := int(claims["user_id"].(float64))
+	fmt.Println("===>", claims)
 
-	// search employee existing schedles and check  for time collisions
+	// search employee existing schedules and check  for time collisions
 	schedulesFound := []model.Schedule{}
-	database.DB.Db.Where("employee_id = ?", employeeId).Find(&schedulesFound)
-	i := slices.IndexFunc(schedulesFound, func(s model.Schedule) bool {
-		return s.WeekDay == scheduleDto.WeekDay
-	})
-	if i != -1 {
-		scheduleFound := schedulesFound[i]
-		scheduleStartTime := utils.TimeOfDate(scheduleFound.StartTime)
-		scheduleEndTime := utils.TimeOfDate(scheduleFound.EndTime)
+	database.DB.Db.Where("employee_id = ? AND week_day = ?", employeeId, scheduleDto.WeekDay).Find(&schedulesFound)
+	fmt.Println(len(schedulesFound))
+
+	hasOverlap := false
+	matchIndex := -1
+	for i, schedule := range schedulesFound {
+		scheduleStartTime := utils.TimeOfDate(schedule.StartTime)
+		scheduleEndTime := utils.TimeOfDate(schedule.EndTime)
 		dtoStartTime := utils.TimeOfDate(scheduleDto.StartTime)
 		dtoEndTime := utils.TimeOfDate(scheduleDto.EndTime)
-
-		if checkOverlap(scheduleStartTime, scheduleEndTime, dtoStartTime, dtoEndTime) {
-			return c.Status(400).JSON(common.ErrorResponse{
-				StatusCode: 400,
-				Message:    fmt.Sprintf("time block must be in an interval other than [%s,%s]", scheduleStartTime, scheduleEndTime),
-			})
+		fmt.Println(scheduleStartTime, scheduleEndTime, dtoStartTime, dtoEndTime)
+		hasOverlap = checkOverlap(scheduleStartTime, scheduleEndTime, dtoStartTime, dtoEndTime)
+		if hasOverlap {
+			matchIndex = i
+			break
 		}
 	}
+
+	if hasOverlap {
+		matchSchedule := schedulesFound[matchIndex]
+		layout := "15:04"
+		fmt.Println("*****")
+		fmt.Println(matchSchedule.StartTime.Location())
+		fmt.Println(matchSchedule.StartTime.In(time.UTC).Location())
+		fmt.Println(matchSchedule.StartTime.In(time.UTC))
+		fmt.Println(matchSchedule.StartTime)
+		return c.Status(400).JSON(common.ErrorResponse{
+			StatusCode: 400,
+			Message: fmt.Sprintf("time block [%s , %s] must be in an interval other than [%s , %s]",
+				scheduleDto.StartTime.Format(layout),
+				scheduleDto.EndTime.Format(layout),
+				matchSchedule.StartTime.UTC().Format(layout),
+				matchSchedule.EndTime.UTC().Format(layout),
+			),
+		})
+	}
+	//TODO: create a test for this function
 
 	newSchedule := model.Schedule{
 		EmployeeID: employeeId,
 		WeekDay:    scheduleDto.WeekDay,
-		StartTime:  scheduleDto.StartTime,
-		EndTime:    scheduleDto.EndTime,
+		StartTime:  scheduleDto.StartTime.In(time.UTC),
+		EndTime:    scheduleDto.EndTime.In(time.UTC),
 	}
 
 	database.DB.Db.Create(&newSchedule)

@@ -23,6 +23,9 @@ func CompareTimeOnly(t1, t2 time.Time) int {
 	return 0
 }
 
+// Return a time.Time type with a fixed date 0000/01/01 in order to compare times with
+// other date fixed times using available methods
 func TimeOfDate(t time.Time) time.Time {
+	t = t.In(time.UTC)
 	return time.Date(0, 1, 1, t.Hour(), t.Minute(), t.Second(), t.Nanosecond(), time.UTC)
 }
