@@ -16,6 +16,7 @@ func Validate(payload any) *fiber.Error {
 		var errors []string
 
 		for _, err := range err.(validator.ValidationErrors) {
+			fmt.Println(err.Param())
 			errors = append(
 				errors,
 				fmt.Sprintf("`%v` with value `%v` doesn't satisfy the `%v` constraint", err.Field(), err.Value(), err.Tag()),

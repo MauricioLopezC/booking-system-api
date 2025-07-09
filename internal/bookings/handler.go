@@ -52,12 +52,13 @@ func CreateBooking(c *fiber.Ctx) error {
 		})
 	}
 
+	//BookingDate must be equal to available schedule startTime
 	hasMatch := false
+	bookingTime := utils.NewTimeOfDay(bookingDto.BookingDate)
 	for _, schedule := range avSchedules {
-		bookingTime := utils.TimeOfDate(bookingDto.BookingDate)
-		scheduleStartTime := utils.TimeOfDate(schedule.StartTime)
-		scheduleEndTime := utils.TimeOfDate(schedule.EndTime)
-		if scheduleStartTime.Before(bookingTime) && scheduleEndTime.After(bookingTime) {
+		scheduleStartTime := utils.NewTimeOfDay(schedule.StartTime)
+
+		if scheduleStartTime.Equal(bookingTime) {
 			hasMatch = true
 			break
 		}
@@ -70,21 +71,13 @@ func CreateBooking(c *fiber.Ctx) error {
 		})
 	}
 
-	//Prevent to user to pass his own CustomerID, get his id with:
-	//FIX: bug claims["user_id"]
 	user := c.Locals("user").(*jwt.Token)
 	claims := user.Claims.(jwt.MapClaims)
-	customerId, err := strconv.Atoi(claims["user_id"].(string))
-	if err != nil {
-		return c.Status(500).JSON(common.ErrorResponse{
-			StatusCode: 500,
-			Message:    "Error getting user info",
-		})
-	}
-	fmt.Println("user_id: ", customerId)
+	userId := int(claims["user_id"].(float64))
+	fmt.Println("claims", claims)
 
 	booking := model.Booking{
-		CustomerID:  customerId,
+		CustomerID:  userId,
 		EmployeeID:  bookingDto.EmployeeID,
 		ServiceID:   bookingDto.ServiceID,
 		BookingDate: bookingDto.BookingDate,
@@ -116,7 +109,6 @@ func FindAllBookings(c *fiber.Ctx) error {
 
 	offset := (page - 1) * limit
 	query := database.DB.Db.Limit(limit).Offset(offset)
-	bookings := []model.Booking{} //declaring bookings slice
 
 	orderBy := c.Query("orderBy")
 	allowedFields := map[string]bool{
@@ -129,6 +121,7 @@ func FindAllBookings(c *fiber.Ctx) error {
 		query = query.Order(orderBy)
 	}
 
+	bookings := []model.Booking{} //declaring bookings slice
 	query.Find(&bookings)
 
 	var count int64
