@@ -23,6 +23,7 @@ func SetupRoutes(app *fiber.App) {
 
 	//Shedules
 	scheduleGroup := api.Group("/schedule")
-	scheduleGroup.Post("/", auth.Protected(), schedule.CreateSchedule)
-	scheduleGroup.Get("/", schedule.FindAllSchedules)
+	scheduleGroup.Post("/", auth.Protected(), auth.RoleMiddleware("employee"), schedule.CreateSchedule)
+	scheduleGroup.Get("/", schedule.FindAllSchedules) //users get all available schedules
+	scheduleGroup.Get("/:id", schedule.FindOneSchedule)
 }

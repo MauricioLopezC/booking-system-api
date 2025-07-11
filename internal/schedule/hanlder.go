@@ -1,6 +1,7 @@
 package schedule
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 
@@ -10,6 +11,7 @@ import (
 	"github.com/MauricioLopezC/ReservationSystem/internal/utils"
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v5"
+	"gorm.io/gorm"
 )
 
 // Employees can create, read, update and delete his schedules
@@ -98,31 +100,31 @@ func CreateSchedule(c *fiber.Ctx) error {
 	newSchedule := model.Schedule{
 		EmployeeID: employeeId,
 		WeekDay:    scheduleDto.WeekDay,
-		// StartTime:  scheduleDto.StartTime.In(time.UTC),
-		// EndTime:    scheduleDto.EndTime.In(time.UTC),
-		StartTime: dtoStartTime.ToTime(),
-		EndTime:   dtoEndTime.ToTime(),
+		StartTime:  dtoStartTime.ToTime(),
+		EndTime:    dtoEndTime.ToTime(),
 	}
 
 	database.DB.Db.Create(&newSchedule)
-	return c.Status(201).JSON(fiber.Map{
+	return c.Status(fiber.StatusCreated).JSON(fiber.Map{
 		"ID":         newSchedule.ID,
 		"CreatedAt":  newSchedule.CreatedAt,
 		"UpdatedAt":  newSchedule.UpdatedAt,
 		"DeletedAt":  newSchedule.DeletedAt,
-		"EmployeeID": 3,
-		"WeekDay":    2,
+		"EmployeeID": newSchedule.EmployeeID,
+		"WeekDay":    newSchedule.WeekDay,
 		"StartTime":  newSchedule.StartTime.Format("15:04"),
 		"EndTime":    newSchedule.EndTime.Format("15:04"),
 	})
 }
 
+// NOTE: we can use c.queryParser, is like body parser but for query params,
+// using a struct with query and validate tags
 func FindAllSchedules(c *fiber.Ctx) error {
 	//validate query params
 	limit, err := strconv.Atoi(c.Query("limit", "10"))
 	if err != nil || limit <= 0 {
 		return c.Status(fiber.ErrBadRequest.Code).JSON(common.ErrorResponse{
-			StatusCode: 400,
+			StatusCode: fiber.StatusBadRequest,
 			Message:    "Limit muste be an integer number and gt 0",
 		})
 	}
@@ -130,7 +132,7 @@ func FindAllSchedules(c *fiber.Ctx) error {
 	page, err := strconv.Atoi(c.Query("page", "1"))
 	if err != nil || page <= 0 {
 		return c.Status(fiber.ErrBadRequest.Code).JSON(common.ErrorResponse{
-			StatusCode: 400,
+			StatusCode: fiber.StatusBadRequest,
 			Message:    "page must be an integer number and gt 0",
 		})
 	}
@@ -139,14 +141,13 @@ func FindAllSchedules(c *fiber.Ctx) error {
 	query := database.DB.Db.Limit(limit).Offset(offset)
 
 	orderBy := c.Query("orderBy")
-	fmt.Println("===>", orderBy)
 	allowedFields := map[string]bool{
-		"booking_date": true,
-		"created_at":   true,
+		"updated_at": true,
+		"created_at": true,
 	}
 	orderBy, err = common.ParseSortParam(orderBy, allowedFields)
 	fmt.Println(orderBy, err)
-	if err == nil {
+	if err == nil { //if orderBy is not allowed ignore
 		query = query.Order(orderBy)
 	}
 
@@ -156,9 +157,33 @@ func FindAllSchedules(c *fiber.Ctx) error {
 	var count int64
 	database.DB.Db.Model(&model.Schedule{}).Count(&count)
 
-	return c.Status(200).JSON(AllSchedulesResponse{
+	return c.Status(fiber.StatusOK).JSON(AllSchedulesResponse{
 		Data:     schedules,
 		Metadata: metadata{TotalItems: count},
 	})
+}
+
+func FindOneSchedule(c *fiber.Ctx) error {
+	id, err := strconv.Atoi(c.Params("id"))
+	if err != nil || id <= 0 {
+		return c.Status(fiber.StatusBadRequest).JSON(common.ErrorResponse{
+			StatusCode: fiber.StatusBadRequest,
+			Message:    "Numeric string greater than 0 is expected",
+		})
+	}
+
+	schedule := new(model.Schedule)
+	result := database.DB.Db.First(&schedule, id)
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return c.Status(fiber.StatusNotFound).JSON(common.ErrorResponse{
+			StatusCode: fiber.StatusNotFound,
+			Message:    "Schedule not found",
+		})
+	}
+
+	return c.Status(fiber.StatusOK).JSON(schedule)
+}
+
+func FindEmployeSchedules() {
 
 }
