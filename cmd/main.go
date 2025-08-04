@@ -14,7 +14,8 @@ func main() {
 		&model.Service{},
 		&model.Schedule{},
 		&model.Booking{},
-		&model.ScheduleException{},
+		&model.ScheduleOverride{},
+		&model.TimeSlot{},
 	)
 	SetupRoutes(app)
 

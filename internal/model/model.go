@@ -6,6 +6,9 @@ import (
 	"gorm.io/gorm"
 )
 
+//TODO: create many to many relation between employee (user) and service
+
+// NOTE: Roles: employee, customer, admin
 type User struct {
 	gorm.Model
 	Name     string `gorm:"uniqueIndex;not null" json:"name"`
@@ -15,7 +18,6 @@ type User struct {
 	Role     string `gorm:"not null;default:customer" json:"role"`
 }
 
-// NOTE: Roles: employee, customer, admin
 type Service struct {
 	gorm.Model
 	Name            string
@@ -25,9 +27,9 @@ type Service struct {
 
 type Booking struct {
 	gorm.Model
-	CustomerID  int
-	EmployeeID  int
-	ServiceID   int
+	CustomerID  uint
+	EmployeeID  uint
+	ServiceID   uint
 	BookingDate time.Time
 	Status      string `gorm:"not null"`
 	Notes       string
@@ -36,23 +38,37 @@ type Booking struct {
 	Service     Service `gorm:"foreignKey:ServiceID"`
 }
 
-// Ignore date for StartTime and EndTime, use only the time
+// Base schedule by week day
+// ignore date for StartTime and EndTime, use only the time
 type Schedule struct {
 	gorm.Model
-	EmployeeID int       `gorm:"not nill"`
+	EmployeeID uint      `gorm:"not null"`
 	WeekDay    int       `gorm:"not null"`
-	StartTime  time.Time `gorm:"not null"`
-	EndTime    time.Time `gorm:"not null"`
+	StartTime  time.Time `gorm:"not null;type:time"`
+	EndTime    time.Time `gorm:"not null;type:time"`
 	Employee   User      `gorm:"foreignKey:EmployeeID"`
 }
 
-type ScheduleException struct {
+// Used for schedule exceptions
+type ScheduleOverride struct {
 	gorm.Model
-	EmployeeID    int
-	ExceptionDate time.Time `gorm:"not null"`
-	Reason        string
-	AllDay        bool `gorm:"not null;default:false"`
-	StartTime     time.Time
-	Endtime       time.Time
-	Employee      User `gorm:"foreignKey:EmployeeID"`
+	EmployeeID  uint
+	Date        time.Time `gorm:"not null"`
+	Reason      string    `gorm:"not null"`
+	AllDay      bool      `gorm:"not null;default:false"`
+	StartTime   *time.Time
+	EndTime     *time.Time
+	IsAvailable bool `gorm:"default:false"`
+	Employee    User `gorm:"foreignKey:EmployeeID"`
+}
+
+// Used to check daily availability, whem registering a shift,
+// you must check if it is available with this table
+type TimeSlot struct {
+	gorm.Model
+	EmployeeID  uint
+	StartTime   time.Time // Date and time
+	EndTime     time.Time // Date and time
+	IsAvailable bool      `gorm:"default:true"`
+	Employee    User      `gorm:"foreignKey:EmployeeID"`
 }

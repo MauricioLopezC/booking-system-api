@@ -57,7 +57,7 @@ func CreateSchedule(c *fiber.Ctx) error {
 	//get user info
 	user := c.Locals("user").(*jwt.Token)
 	claims := user.Claims.(jwt.MapClaims)
-	employeeId := int(claims["user_id"].(float64))
+	employeeId := uint(claims["user_id"].(float64))
 	fmt.Println("claims", claims)
 
 	// search employee existing schedules and check for time collisions

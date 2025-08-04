@@ -73,7 +73,7 @@ func CreateBooking(c *fiber.Ctx) error {
 
 	user := c.Locals("user").(*jwt.Token)
 	claims := user.Claims.(jwt.MapClaims)
-	userId := int(claims["user_id"].(float64))
+	userId := uint(claims["user_id"].(float64))
 	fmt.Println("claims", claims)
 
 	booking := model.Booking{
