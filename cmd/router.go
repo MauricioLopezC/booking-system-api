@@ -19,11 +19,22 @@ func SetupRoutes(app *fiber.App) {
 
 	//Bookings
 	booking := api.Group("/booking")
-	booking.Post("/", auth.Protected(), bookings.CreateBooking)
+	booking.Post("/", auth.Protected(), auth.RoleMiddleware("employee", "admin"), bookings.CreateBooking)
+	booking.Get("/", auth.Protected(), auth.RoleMiddleware("admin"), bookings.FindAllBookings)
+	//cancel, reasign
 
 	//Shedules
 	scheduleGroup := api.Group("/schedule")
-	scheduleGroup.Post("/", auth.Protected(), auth.RoleMiddleware("employee"), schedule.CreateSchedule)
-	scheduleGroup.Get("/", schedule.FindAllSchedules) //users get all available schedules
+	scheduleGroup.Post("/", auth.Protected(), auth.RoleMiddleware("employee", "admin"), schedule.CreateSchedule)
+	scheduleGroup.Get("/", auth.Protected(), auth.RoleMiddleware("admin"), schedule.FindAllSchedules) //Admin get all employee schedules
 	scheduleGroup.Get("/:id", schedule.FindOneSchedule)
+	scheduleGroup.Delete("/:id", auth.Protected(), auth.RoleMiddleware("employee", "admin"), schedule.DeleteSchedule)
+
+	//available slots
+	api.Get("/available-slots", schedule.FindAvailableSlots) //Customer find all available slots for employee and service
+
+	//current user specific data
+	meGroup := api.Group("/me")
+	meGroup.Get("/bookings", auth.Protected(), bookings.FindBookingsByUser)
+	meGroup.Get("/schedules", auth.Protected(), schedule.FindSchedulesByEmployee)
 }

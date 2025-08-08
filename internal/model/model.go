@@ -6,8 +6,6 @@ import (
 	"gorm.io/gorm"
 )
 
-//TODO: create many to many relation between employee (user) and service
-
 // NOTE: Roles: employee, customer, admin
 type User struct {
 	gorm.Model
@@ -16,6 +14,8 @@ type User struct {
 	Phone    string `gorm:"uniqueIndex;not null" json:"phone"`
 	Password string `gorm:"not null" json:"password"`
 	Role     string `gorm:"not null;default:customer" json:"role"`
+
+	Services []*Service `gorm:"many2many:user_services"`
 }
 
 type Service struct {
@@ -23,15 +23,18 @@ type Service struct {
 	Name            string
 	DurationMinutes int     `gorm:"not null"`
 	Price           float64 `gorm:"not null"`
+
+	Users []*User `gorm:"many2many:user_services"`
 }
 
+// Status: 'booked', 'cancelled', 'completed'
 type Booking struct {
 	gorm.Model
-	CustomerID  uint
-	EmployeeID  uint
-	ServiceID   uint
-	BookingDate time.Time
-	Status      string `gorm:"not null"`
+	CustomerID  uint      `gorm:"not null"`
+	EmployeeID  uint      `gorm:"not null"`
+	ServiceID   uint      `gorm:"not null"`
+	BookingDate time.Time `gorm:"not null"`
+	Status      string    `gorm:"not null"`
 	Notes       string
 	Customer    User    `gorm:"foreignKey:CustomerID"`
 	Employee    User    `gorm:"foreignKey:EmployeeID"`
