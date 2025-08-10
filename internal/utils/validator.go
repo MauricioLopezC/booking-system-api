@@ -31,6 +31,6 @@ func Validate(payload any) *fiber.Error {
 			Message: strings.Join(errors, ","),
 		}
 	}
-	return nil
 
+	return nil
 }

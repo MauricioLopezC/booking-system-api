@@ -4,10 +4,12 @@ import (
 	"github.com/MauricioLopezC/ReservationSystem/internal/auth"
 	"github.com/MauricioLopezC/ReservationSystem/internal/bookings"
 	"github.com/MauricioLopezC/ReservationSystem/internal/schedule"
+	"github.com/MauricioLopezC/ReservationSystem/internal/services"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 )
 
+// TODO: user plural resource names
 func SetupRoutes(app *fiber.App) {
 	//middleware
 	api := app.Group("/api", logger.New())
@@ -21,6 +23,7 @@ func SetupRoutes(app *fiber.App) {
 	booking := api.Group("/booking")
 	booking.Post("/", auth.Protected(), auth.RoleMiddleware("employee", "admin"), bookings.CreateBooking)
 	booking.Get("/", auth.Protected(), auth.RoleMiddleware("admin"), bookings.FindAllBookings)
+	booking.Post("/:id/cancel", auth.Protected(), bookings.CancelBooking)
 	//cancel, reasign
 
 	//Shedules
@@ -37,4 +40,8 @@ func SetupRoutes(app *fiber.App) {
 	meGroup := api.Group("/me")
 	meGroup.Get("/bookings", auth.Protected(), bookings.FindBookingsByUser)
 	meGroup.Get("/schedules", auth.Protected(), schedule.FindSchedulesByEmployee)
+
+	//Services
+	serviceGroup := api.Group("/services")
+	serviceGroup.Post("/", auth.Protected(), services.CreateService)
 }
