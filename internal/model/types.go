@@ -23,13 +23,13 @@ func (ur UserRole) String() string {
 type BookingStatus int
 
 const (
-	SatusBooked BookingStatus = iota
+	StatusBooked BookingStatus = iota
 	StatusCancelled
 	StatusCompleted
 )
 
 var statusName = map[BookingStatus]string{
-	SatusBooked:     "booked",
+	StatusBooked:    "booked",
 	StatusCancelled: "cancelled",
 	StatusCompleted: "completed",
 }
