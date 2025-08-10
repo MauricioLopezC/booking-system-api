@@ -8,3 +8,6 @@ type CreateBookingDto struct {
 	BookingDate time.Time `json:"bookingDate" validate:"required"`
 	Notes       string    `json:"notes" validate:"max=250"`
 }
+
+type UpdateBookingDto struct {
+}

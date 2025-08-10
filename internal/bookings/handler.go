@@ -121,7 +121,7 @@ func CreateBooking(c *fiber.Ctx) error {
 
 	// Check the existing bookings for employee in bookingDate
 	bookings := []model.Booking{}
-	if result := database.DB.Db.Where("employee_id = ? AND DATE(booking_date) = DATE(?) AND status = ?", bookingDto.EmployeeID, bookingDate, model.SatusBooked.String()).Find(&bookings); result.Error != nil {
+	if result := database.DB.Db.Where("employee_id = ? AND DATE(booking_date) = DATE(?) AND status = ?", bookingDto.EmployeeID, bookingDate, model.StatusBooked.String()).Find(&bookings); result.Error != nil {
 		return common.NewInternalServerError(c)
 	}
 
@@ -151,7 +151,7 @@ func CreateBooking(c *fiber.Ctx) error {
 		EmployeeID:  bookingDto.EmployeeID,
 		ServiceID:   bookingDto.ServiceID,
 		BookingDate: bookingDto.BookingDate,
-		Status:      model.SatusBooked.String(),
+		Status:      model.StatusBooked.String(),
 		Notes:       bookingDto.Notes,
 	}
 
@@ -159,7 +159,7 @@ func CreateBooking(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(booking)
 }
 
-// Use in endpoint: GET /bookins
+// Use in GET /bookins endpoint.
 // Required roles: admin
 func FindAllBookings(c *fiber.Ctx) error {
 	limit, err := strconv.Atoi(c.Query("limit", "10"))
@@ -283,6 +283,10 @@ func FindBookingsByUser(c *fiber.Ctx) error {
 	})
 }
 
+func UpdateBooking() {
+
+}
+
 // Employee or customer can cancel their bookings, use in
 // POST /bookings/:id/cancel endpoint
 func CancelBooking(c *fiber.Ctx) error {
@@ -313,8 +317,7 @@ func CancelBooking(c *fiber.Ctx) error {
 	}
 
 	var booking model.Booking
-	result := database.DB.Db.Model(&booking).Where("id = ?", id).Update("status", model.StatusCancelled.String())
-	if result.Error != nil {
+	if result := database.DB.Db.First(&booking, id); result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			return c.Status(fiber.StatusNotFound).JSON(common.ErrorResponse{
 				StatusCode: fiber.StatusNotFound,
@@ -323,6 +326,18 @@ func CancelBooking(c *fiber.Ctx) error {
 		}
 		return common.NewInternalServerError(c)
 	}
-	return c.Status(fiber.StatusOK).JSON(booking)
+	//Check if previous booking status is booked
+	if booking.Status != model.StatusBooked.String() {
+		return c.Status(fiber.StatusMethodNotAllowed).JSON(common.ErrorResponse{
+			StatusCode: fiber.StatusMethodNotAllowed,
+			Message:    "You can't cancel booking with status completed or cancelled",
+		})
+	}
 
+	booking.Status = model.StatusCancelled.String()
+	if result := database.DB.Db.Save(booking); result.Error != nil {
+		return common.NewInternalServerError(c)
+	}
+
+	return c.Status(fiber.StatusOK).JSON(booking)
 }
