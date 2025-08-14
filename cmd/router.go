@@ -44,4 +44,5 @@ func SetupRoutes(app *fiber.App) {
 	//Services
 	serviceGroup := api.Group("/services")
 	serviceGroup.Post("/", auth.Protected(), services.CreateService)
+	serviceGroup.Get("/", services.FindAllServices)
 }
