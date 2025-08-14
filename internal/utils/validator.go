@@ -23,9 +23,8 @@ func Validate(payload any) *fiber.Error {
 			)
 		}
 
-		//NOTE: this error does not return a JSON, only a text message
-		//send json instead
-		// return response.ErrorResponse{StatusCode: fiber.StatusBadRequest, Message: strings.Join(errors, ",") }
+		//NOTE: fiber.Error is not the final api response, is a Struct, compatible with
+		//Error interface
 		return &fiber.Error{
 			Code:    fiber.StatusBadRequest,
 			Message: strings.Join(errors, ","),
