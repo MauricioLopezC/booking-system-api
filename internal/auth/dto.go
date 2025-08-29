@@ -11,3 +11,15 @@ type CreateUserDto struct {
 	Password string `json:"password" validate:"required"`
 	Phone    string `json:"phone" validate:"required,e164"`
 }
+
+type UserResponse struct {
+	ID       uint   `json:"id"`
+	Username string `json:"username"`
+	Email    string `json:"email"`
+	Role     string `json:"role"`
+}
+
+type AuthResponse struct {
+	UserResponse
+	Token string
+}
