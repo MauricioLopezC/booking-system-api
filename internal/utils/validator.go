@@ -24,7 +24,7 @@ func Validate(payload any) *fiber.Error {
 		}
 
 		//NOTE: fiber.Error is not the final api response, is a Struct, compatible with
-		//Error interface
+		//Error interface, and is a pointer to allow return nil
 		return &fiber.Error{
 			Code:    fiber.StatusBadRequest,
 			Message: strings.Join(errors, ","),
