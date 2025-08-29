@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/MauricioLopezC/ReservationSystem/internal/database"
 	"github.com/MauricioLopezC/ReservationSystem/internal/model"
+	"github.com/MauricioLopezC/ReservationSystem/internal/schedule"
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -17,7 +18,12 @@ func main() {
 		&model.ScheduleOverride{},
 		&model.TimeSlot{},
 	)
-	SetupRoutes(app)
+
+	//handles and servicies
+	scheduleService := schedule.NewScheduleService(database.DB.Db)
+	scheduleHandler := schedule.NewScheduleHandler(scheduleService)
+
+	SetupRoutes(app, scheduleHandler)
 
 	app.Listen(":3000")
 }

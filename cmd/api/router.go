@@ -10,7 +10,7 @@ import (
 )
 
 // TODO: user plural resource names
-func SetupRoutes(app *fiber.App) {
+func SetupRoutes(app *fiber.App, schedulesH *schedule.ScheduleHandler) {
 	//middleware
 	api := app.Group("/api", logger.New())
 
@@ -28,18 +28,18 @@ func SetupRoutes(app *fiber.App) {
 
 	//Shedules
 	scheduleGroup := api.Group("/schedule")
-	scheduleGroup.Post("/", auth.Protected(), auth.RoleMiddleware("employee", "admin"), schedule.CreateSchedule)
-	scheduleGroup.Get("/", auth.Protected(), auth.RoleMiddleware("admin"), schedule.FindAllSchedules) //Admin get all employee schedules
-	scheduleGroup.Get("/:id", schedule.FindOneSchedule)
-	scheduleGroup.Delete("/:id", auth.Protected(), auth.RoleMiddleware("employee", "admin"), schedule.DeleteSchedule)
+	scheduleGroup.Post("/", auth.Protected(), auth.RoleMiddleware("employee", "admin"), schedulesH.CreateSchedule)
+	scheduleGroup.Get("/", auth.Protected(), auth.RoleMiddleware("admin"), schedulesH.FindAllSchedules) //Admin get all employee schedules
+	scheduleGroup.Get("/:id", schedulesH.FindOneSchedule)
+	scheduleGroup.Delete("/:id", auth.Protected(), auth.RoleMiddleware("employee", "admin"), schedulesH.DeleteSchedule)
 
 	//available slots
-	api.Get("/available-slots", schedule.FindAvailableSlots) //Customer find all available slots for employee and service
+	api.Get("/available-slots", schedulesH.FindAvailableSlots) //Customer find all available slots for employee and service
 
 	//current user specific data
 	meGroup := api.Group("/me")
 	meGroup.Get("/bookings", auth.Protected(), bookings.FindBookingsByUser)
-	meGroup.Get("/schedules", auth.Protected(), schedule.FindSchedulesByEmployee)
+	meGroup.Get("/schedules", auth.Protected(), schedulesH.FindSchedulesByEmployee)
 
 	//Services
 	serviceGroup := api.Group("/services")
