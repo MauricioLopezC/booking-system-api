@@ -10,7 +10,11 @@ import (
 )
 
 // TODO: user plural resource names
-func SetupRoutes(app *fiber.App, schedulesH *schedule.ScheduleHandler) {
+func SetupRoutes(
+	app *fiber.App,
+	schedulesH *schedule.ScheduleHandler,
+	bookingsH *bookings.BookingsHandler,
+) {
 	//middleware
 	api := app.Group("/api", logger.New())
 
@@ -21,9 +25,9 @@ func SetupRoutes(app *fiber.App, schedulesH *schedule.ScheduleHandler) {
 
 	//Bookings
 	booking := api.Group("/booking")
-	booking.Post("/", auth.Protected(), auth.RoleMiddleware("employee", "admin"), bookings.CreateBooking)
-	booking.Get("/", auth.Protected(), auth.RoleMiddleware("admin"), bookings.FindAllBookings)
-	booking.Post("/:id/cancel", auth.Protected(), bookings.CancelBooking)
+	booking.Post("/", auth.Protected(), auth.RoleMiddleware("employee", "admin"), bookingsH.CreateBooking)
+	booking.Get("/", auth.Protected(), auth.RoleMiddleware("admin"), bookingsH.FindAll)
+	booking.Post("/:id/cancel", auth.Protected(), bookingsH.CancelBooking)
 	//cancel, reasign
 
 	//Shedules
@@ -38,7 +42,7 @@ func SetupRoutes(app *fiber.App, schedulesH *schedule.ScheduleHandler) {
 
 	//current user specific data
 	meGroup := api.Group("/me")
-	meGroup.Get("/bookings", auth.Protected(), bookings.FindBookingsByUser)
+	meGroup.Get("/bookings", auth.Protected(), bookingsH.FindBookingsByUser)
 	meGroup.Get("/schedules", auth.Protected(), schedulesH.FindSchedulesByEmployee)
 
 	//Services

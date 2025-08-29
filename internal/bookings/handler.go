@@ -19,6 +19,10 @@ type BookingsHandler struct {
 	bookingsService *BookingsService
 }
 
+func NewBookingsHandler(bookingsSerice *BookingsService) *BookingsHandler {
+	return &BookingsHandler{bookingsService: bookingsSerice}
+}
+
 func (h *BookingsHandler) CreateBooking(c *fiber.Ctx) error {
 	bookingDto := new(BookingDto)
 
@@ -30,24 +34,6 @@ func (h *BookingsHandler) CreateBooking(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(common.ErrorResponse{
 			StatusCode: fiber.StatusBadRequest,
 			Message:    err.Error(),
-		})
-	}
-
-	//TODO: date validations are business logic, move it to service.
-	//check if BookingDate is gte today date and lte max date, for exmple next month
-	if !time.Now().Before(bookingDto.BookingDate.Local()) {
-		return c.Status(fiber.StatusBadRequest).JSON(common.ErrorResponse{
-			StatusCode: fiber.StatusBadRequest,
-			Message:    "Booking date and time must be greater than the current ones",
-		})
-	}
-
-	now := time.Now()
-	maxDate := now.AddDate(0, 0, 14)
-	if !bookingDto.BookingDate.Local().Before(maxDate) {
-		return c.Status(fiber.StatusBadRequest).JSON(common.ErrorResponse{
-			StatusCode: fiber.StatusBadRequest,
-			Message:    "Booking date and time must be lower than max date (two weeks)",
 		})
 	}
 
@@ -85,6 +71,7 @@ func (h *BookingsHandler) CreateBooking(c *fiber.Ctx) error {
 			})
 		}
 		// unexpected error
+		fmt.Print(err.Error())
 		return common.NewInternalServerErrorResponse(c)
 	}
 	return c.Status(fiber.StatusCreated).JSON(newBooking)

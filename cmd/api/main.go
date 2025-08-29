@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/MauricioLopezC/ReservationSystem/internal/bookings"
 	"github.com/MauricioLopezC/ReservationSystem/internal/database"
 	"github.com/MauricioLopezC/ReservationSystem/internal/model"
 	"github.com/MauricioLopezC/ReservationSystem/internal/schedule"
@@ -23,7 +24,10 @@ func main() {
 	scheduleService := schedule.NewScheduleService(database.DB.Db)
 	scheduleHandler := schedule.NewScheduleHandler(scheduleService)
 
-	SetupRoutes(app, scheduleHandler)
+	bookingsService := bookings.NewBookingsService(database.DB.Db)
+	bookingsHandler := bookings.NewBookingsHandler(bookingsService)
+
+	SetupRoutes(app, scheduleHandler, bookingsHandler)
 
 	app.Listen(":3000")
 }

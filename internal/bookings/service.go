@@ -14,12 +14,27 @@ type BookingsService struct {
 	db *gorm.DB
 }
 
+func NewBookingsService(db *gorm.DB) *BookingsService {
+	return &BookingsService{db: db}
+}
+
 func (bs *BookingsService) CreateBooking(booking model.Booking) (*model.Booking, error) {
+	//check if booking date is greater than now, and is Before new two weeks
+	now := time.Now()
+	if !booking.BookingDate.After(now) {
+		return nil, fmt.Errorf("%w: %s", common.ErrValidation, "Booking datetime must be greater than the current one")
+	}
+
+	if booking.BookingDate.Before(now.AddDate(0, 0, 14)) {
+		return nil, fmt.Errorf("%w: %s", common.ErrValidation, "Booking date must no exceed 2 weks")
+	}
+
 	var service model.Service
 	if result := bs.db.First(&service, booking.ServiceID); result.Error != nil {
 		return nil, fmt.Errorf("%w: %s", common.ErrConflict, "Service not assigned to employee")
 	}
 
+	//check if employee has service
 	hasService, err := common.EmployeeHasService(bs.db, booking.EmployeeID, booking.ServiceID)
 	if err != nil {
 		return nil, err
@@ -41,68 +56,26 @@ func (bs *BookingsService) CreateBooking(booking model.Booking) (*model.Booking,
 		return nil, fmt.Errorf("%w: %s", common.ErrValidation, "Employee or Employee schedule not found")
 	}
 
-	//Interval [BookingStart, BookingEnd] outside interval [scheduleStartTime, scheduleEndTime]
-	hasMatch := false
-	bookingStart := booking.BookingDate.Local()
-	bookingEnd := bookingStart.Add(time.Duration(service.DurationMinutes) * time.Minute)
-	for _, schedule := range daySchedule {
-		scheduleStart := time.Date(bookingStart.Year(), bookingStart.Month(), bookingStart.Day(), schedule.StartTime.Hour(), schedule.StartTime.Minute(), 0, 0, time.Local)
-		scheduleEnd := time.Date(bookingStart.Year(), bookingStart.Month(), bookingStart.Day(), schedule.EndTime.Hour(), schedule.EndTime.Minute(), 0, 0, time.Local)
-		if (bookingStart.After(scheduleStart) || bookingStart.Equal(scheduleStart)) &&
-			(bookingEnd.Before(scheduleEnd) || bookingEnd.Equal(scheduleEnd)) {
-			hasMatch = true
-			break
-		}
-	}
-
-	if !hasMatch {
-		return nil, fmt.Errorf("%w: %s", common.ErrConflict, "bookingTime not match with an available schedule")
-	}
-
-	// Check for schedule exeptions
-	bookingDate := booking.BookingDate
+	//exeptions
 	exceptions := []model.ScheduleOverride{}
-	if result := bs.db.Where("DATE(exception_date) = DATE(?) ", bookingDate).Find(&exceptions); result.Error != nil {
+	if result := bs.db.Where("DATE(exception_date) = DATE(?) ", booking.BookingDate).Find(&exceptions); result.Error != nil {
 		return nil, result.Error
 	}
 
-	// Check if [bookingStart, bookingEnd] overlaps interval [exStartTime, exEndtime]
-	// excluding the extremes, for each exception of the day
-	isBlocked := false
-	for _, ex := range exceptions {
-		if ex.AllDay {
-			isBlocked = true
-			break
-		}
-		if bookingStart.Before(*ex.EndTime) && bookingEnd.After(*ex.StartTime) {
-			isBlocked = true
-			break
-		}
-	}
-	if isBlocked {
-		return nil, fmt.Errorf("%w: %s", common.ErrConflict, "booking not available.")
-	}
-
-	// Check the existing bookings for employee in bookingDate
-	bookings := []model.Booking{}
-	if result := bs.db.Where("employee_id = ? AND DATE(booking_date) = DATE(?) AND status = ?", booking.EmployeeID, bookingDate, model.StatusBooked.String()).Find(&bookings); result.Error != nil {
+	//existing existingBookings
+	existingBookings := []model.Booking{}
+	if result := bs.db.Where("employee_id = ? AND DATE(booking_date) = DATE(?) AND status = ?", booking.EmployeeID, booking.BookingDate, model.StatusBooked.String()).Find(&existingBookings); result.Error != nil {
 		return nil, result.Error
 	}
 
-	// Check if [bookingStart, bookingEnd] overlaps interval [existingStart, existingEnd]
-	for _, booking := range bookings {
-		existingStart := booking.BookingDate
-		existingEnd := booking.BookingDate.Add(time.Duration(service.DurationMinutes) * time.Minute)
-		if bookingStart.Before(existingEnd) && bookingStart.After(existingStart) {
-			isBlocked = true
-			break
-		}
+	//check if is an available slot then update or return err
+	isAvailable := bs.checkSlot(booking, service, daySchedule, exceptions, existingBookings)
+	if !isAvailable {
+		return nil, fmt.Errorf("%w: %s", common.ErrConflict, "Booking cannot be scheduled on the selected datetime")
 	}
-	if isBlocked {
-		return nil, fmt.Errorf("%w: %s", common.ErrConflict, "booking not available.")
+	if result := bs.db.Create(&booking); result.Error != nil {
+		return nil, result.Error
 	}
-
-	bs.db.Create(&booking)
 	return &booking, nil
 }
 
