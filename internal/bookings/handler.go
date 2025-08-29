@@ -15,38 +15,307 @@ import (
 	"gorm.io/gorm"
 )
 
-// TODO: employee should be able to reschedule bookings
-func CreateBooking(c *fiber.Ctx) error {
-	bookingDto := new(CreateBookingDto)
+type BookingsHandler struct {
+	bookingsService *BookingsService
+}
+
+func (h *BookingsHandler) CreateBooking(c *fiber.Ctx) error {
+	bookingDto := new(BookingDto)
 
 	if err := c.BodyParser(bookingDto); err != nil {
-		return c.Status(400).JSON(common.ErrorResponse{StatusCode: 400, Message: err.Error()})
+		return c.Status(fiber.StatusBadRequest).JSON(common.ErrorResponse{StatusCode: fiber.StatusBadRequest, Message: err.Error()})
 	}
-	fmt.Println(bookingDto)
 
 	if err := utils.Validate(bookingDto); err != nil {
-		return c.Status(err.Code).JSON(common.ErrorResponse{
-			StatusCode: uint(err.Code),
-			Message:    err.Message,
+		return c.Status(fiber.StatusBadRequest).JSON(common.ErrorResponse{
+			StatusCode: fiber.StatusBadRequest,
+			Message:    err.Error(),
+		})
+	}
+
+	//TODO: date validations are business logic, move it to service.
+	//check if BookingDate is gte today date and lte max date, for exmple next month
+	if !time.Now().Before(bookingDto.BookingDate.Local()) {
+		return c.Status(fiber.StatusBadRequest).JSON(common.ErrorResponse{
+			StatusCode: fiber.StatusBadRequest,
+			Message:    "Booking date and time must be greater than the current ones",
+		})
+	}
+
+	now := time.Now()
+	maxDate := now.AddDate(0, 0, 14)
+	if !bookingDto.BookingDate.Local().Before(maxDate) {
+		return c.Status(fiber.StatusBadRequest).JSON(common.ErrorResponse{
+			StatusCode: fiber.StatusBadRequest,
+			Message:    "Booking date and time must be lower than max date (two weeks)",
+		})
+	}
+
+	user := c.Locals("user").(*jwt.Token)
+	claims := user.Claims.(jwt.MapClaims)
+	userId := uint(claims["user_id"].(float64))
+
+	booking := model.Booking{
+		CustomerID:  userId,
+		EmployeeID:  bookingDto.EmployeeID,
+		ServiceID:   bookingDto.ServiceID,
+		BookingDate: bookingDto.BookingDate,
+		Status:      model.StatusBooked.String(),
+		Notes:       bookingDto.Notes,
+	}
+
+	newBooking, err := h.bookingsService.CreateBooking(booking)
+	if err != nil {
+		if errors.Is(err, common.ErrRecordNotFound) {
+			return c.Status(fiber.StatusNotFound).JSON(common.ErrorResponse{
+				StatusCode: fiber.StatusNotFound,
+				Message:    err.Error(),
+			})
+		}
+		if errors.Is(err, common.ErrConflict) {
+			return c.Status(fiber.StatusConflict).JSON(common.ErrorResponse{
+				StatusCode: fiber.StatusConflict,
+				Message:    err.Error(),
+			})
+		}
+		if errors.Is(err, common.ErrValidation) {
+			return c.Status(fiber.StatusBadRequest).JSON(common.ErrorResponse{
+				StatusCode: fiber.StatusBadRequest,
+				Message:    err.Error(),
+			})
+		}
+		// unexpected error
+		return common.NewInternalServerErrorResponse(c)
+	}
+	return c.Status(fiber.StatusCreated).JSON(newBooking)
+}
+
+func (h *BookingsHandler) FindAll(c *fiber.Ctx) error {
+	limit, err := strconv.Atoi(c.Query("limit", "10"))
+	if err != nil || limit <= 0 {
+		return c.Status(fiber.ErrBadRequest.Code).JSON(common.ErrorResponse{
+			StatusCode: 400,
+			Message:    "Limit muste be an integer number and gt 0",
+		})
+	}
+
+	page, err := strconv.Atoi(c.Query("page", "1"))
+	if err != nil || page <= 0 {
+		return c.Status(fiber.ErrBadRequest.Code).JSON(common.ErrorResponse{
+			StatusCode: 400,
+			Message:    "page must be an integer number and gt 0",
+		})
+	}
+
+	orderBy := c.Query("orderBy")
+	allowedFields := map[string]bool{
+		"booking_date": true,
+		"created_at":   true,
+	}
+	orderBy, _ = utils.ParseSortParam(orderBy, allowedFields)
+
+	allBookingsResponse, err := h.bookingsService.FindAllBookings(limit, page, orderBy)
+	if err != nil {
+		// unexpected error
+		return common.NewInternalServerErrorResponse(c)
+	}
+
+	return c.Status(200).JSON(allBookingsResponse)
+}
+
+func (h *BookingsHandler) FindOne(c *fiber.Ctx) error {
+	id, err := c.ParamsInt("id")
+	if err != nil || id <= 0 {
+		return c.Status(fiber.StatusBadRequest).JSON(common.ErrorResponse{
+			StatusCode: fiber.StatusBadRequest,
+			Message:    "Numeric string greater than 0 is expected",
+		})
+	}
+
+	createdBooking, err := h.bookingsService.FindOneBooking(id)
+	if err != nil {
+		if errors.Is(err, common.ErrRecordNotFound) {
+			return c.Status(fiber.StatusNotFound).JSON(common.ErrorResponse{
+				StatusCode: fiber.StatusNotFound,
+				Message:    err.Error(),
+			})
+		}
+		// unexpected error
+		return common.NewInternalServerErrorResponse(c)
+	}
+	return c.Status(fiber.StatusCreated).JSON(createdBooking)
+}
+
+func (h *BookingsHandler) UpdateBooking(c *fiber.Ctx) error {
+	id, err := c.ParamsInt("id")
+	if err != nil || id <= 0 {
+		return c.Status(fiber.StatusBadRequest).JSON(common.ErrorResponse{
+			StatusCode: fiber.StatusBadRequest,
+			Message:    "Numeric string greater than 0 is expected",
+		})
+	}
+
+	bookingDto := new(BookingDto)
+	if err := c.BodyParser(bookingDto); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(common.ErrorResponse{StatusCode: fiber.StatusBadRequest, Message: err.Error()})
+	}
+
+	if err := utils.Validate(bookingDto); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(common.ErrorResponse{
+			StatusCode: fiber.StatusBadRequest,
+			Message:    err.Error(),
+		})
+	}
+
+	booking, err := h.bookingsService.FindOneBooking(id)
+	if err != nil {
+		if errors.Is(err, common.ErrRecordNotFound) {
+			return c.Status(fiber.StatusNotFound).JSON(common.ErrorResponse{
+				StatusCode: fiber.StatusNotFound,
+				Message:    err.Error(),
+			})
+		}
+		return common.NewInternalServerErrorResponse(c)
+	}
+	updatedBooking, err := h.bookingsService.UpdateBooking(*booking)
+	if err != nil {
+		if errors.Is(err, common.ErrConflict) {
+			return c.Status(fiber.StatusConflict).JSON(common.ErrorResponse{
+				StatusCode: fiber.StatusConflict,
+				Message:    err.Error(),
+			})
+		}
+		if errors.Is(err, common.ErrValidation) {
+			return c.Status(fiber.StatusBadRequest).JSON(common.ErrorResponse{
+				StatusCode: fiber.StatusBadRequest,
+				Message:    err.Error(),
+			})
+		}
+	}
+	return c.Status(fiber.StatusOK).JSON(updatedBooking)
+}
+
+func (h *BookingsHandler) FindBookingsByUser(c *fiber.Ctx) error {
+	limit, err := strconv.Atoi(c.Query("limit", "10"))
+	if err != nil || limit <= 0 {
+		return c.Status(fiber.StatusBadRequest).JSON(common.ErrorResponse{
+			StatusCode: fiber.StatusBadRequest,
+			Message:    "Limit muste be an integer number and gt 0",
+		})
+	}
+
+	page, err := strconv.Atoi(c.Query("page", "1"))
+	if err != nil || page <= 0 {
+		return c.Status(fiber.StatusBadRequest).JSON(common.ErrorResponse{
+			StatusCode: fiber.StatusBadRequest,
+			Message:    "page must be an integer number and gt 0",
+		})
+	}
+
+	orderBy := c.Query("orderBy")
+	allowedFields := map[string]bool{
+		"booking_date": true,
+		"created_at":   true,
+	}
+	orderBy, err = utils.ParseSortParam(orderBy, allowedFields)
+
+	//get user data from context
+	userToken, ok1 := c.Locals("user").(*jwt.Token)
+	claims, ok2 := userToken.Claims.(jwt.MapClaims)
+	userId, ok3 := claims["user_id"].(float64)
+	role, ok4 := claims["role"].(string)
+	if !ok1 || !ok2 || !ok3 || !ok4 {
+		return common.NewInternalServerErrorResponse(c)
+	}
+
+	allBookingsResponse, err := h.bookingsService.FindBookingsByUser(limit, page, orderBy, uint(userId), role)
+	if err != nil {
+		if errors.Is(err, common.ErrUnauthorized) {
+			return c.Status(fiber.StatusUnauthorized).JSON(common.ErrorResponse{
+				StatusCode: fiber.StatusUnauthorized,
+				Message:    err.Error(),
+			})
+		}
+		return common.NewInternalServerErrorResponse(c)
+	}
+
+	return c.Status(fiber.StatusOK).JSON(allBookingsResponse)
+}
+
+func (h *BookingsHandler) CancelBooking(c *fiber.Ctx) error {
+	//Get booking id
+	id, err := c.ParamsInt("id")
+	if err != nil || id <= 0 {
+		return c.Status(fiber.StatusBadRequest).JSON(common.ErrorResponse{
+			StatusCode: fiber.StatusBadRequest,
+			Message:    "Numeric string greater than 0 is expected",
+		})
+	}
+	//Get user id
+	userToken, ok1 := c.Locals("user").(*jwt.Token)
+	claims, ok2 := userToken.Claims.(jwt.MapClaims)
+	userId, ok3 := claims["user_id"].(float64)
+	role, ok4 := claims["role"].(string)
+	if !ok1 || !ok2 || !ok3 || !ok4 {
+		return common.NewInternalServerErrorResponse(c)
+	}
+
+	booking, err := h.bookingsService.CancelBooking(id, uint(userId), role)
+	if err != nil {
+		if errors.Is(err, common.ErrUnauthorized) {
+			return c.Status(fiber.StatusUnauthorized).JSON(common.ErrorResponse{
+				StatusCode: fiber.StatusUnauthorized,
+				Message:    err.Error(),
+			})
+		}
+		if errors.Is(err, common.ErrConflict) {
+			return c.Status(fiber.StatusConflict).JSON(common.ErrorResponse{
+				StatusCode: fiber.StatusConflict,
+				Message:    err.Error(),
+			})
+		}
+		if errors.Is(err, common.ErrRecordNotFound) {
+			return c.Status(fiber.StatusNotFound).JSON(common.ErrorResponse{
+				StatusCode: fiber.StatusNotFound,
+				Message:    err.Error(),
+			})
+		}
+		return common.NewInternalServerErrorResponse(c)
+	}
+
+	return c.Status(fiber.StatusOK).JSON(booking)
+}
+
+func CreateBooking(c *fiber.Ctx) error {
+	bookingDto := new(BookingDto)
+
+	if err := c.BodyParser(bookingDto); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(common.ErrorResponse{StatusCode: fiber.StatusBadRequest, Message: err.Error()})
+	}
+
+	if err := utils.Validate(bookingDto); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(common.ErrorResponse{
+			StatusCode: fiber.StatusBadRequest,
+			Message:    err.Error(),
 		})
 	}
 
 	//check if BookingDate is gte today date and lte max date, for exmple next month
 	if !time.Now().Before(bookingDto.BookingDate.Local()) {
-		return c.Status(400).JSON(common.ErrorResponse{
-			StatusCode: 400,
+		return c.Status(fiber.StatusBadRequest).JSON(common.ErrorResponse{
+			StatusCode: fiber.StatusBadRequest,
 			Message:    "Booking date and time must be greater than the current ones",
 		})
 	}
 
 	var service model.Service
 	if result := database.DB.Db.First(&service, bookingDto.ServiceID); result.Error != nil {
-		return common.NewInternalServerError(c)
+		return common.NewInternalServerErrorResponse(c)
 	}
 
 	hasService, err := common.EmployeeHasService(database.DB.Db, bookingDto.EmployeeID, bookingDto.ServiceID)
 	if err != nil {
-		return common.NewInternalServerError(c)
+		return common.NewInternalServerErrorResponse(c)
 	}
 
 	if !hasService {
@@ -96,7 +365,7 @@ func CreateBooking(c *fiber.Ctx) error {
 	bookingDate := bookingDto.BookingDate
 	exceptions := []model.ScheduleOverride{}
 	if result := database.DB.Db.Where("DATE(exception_date) = DATE(?) ", bookingDate).Find(&exceptions); result.Error != nil {
-		return common.NewInternalServerError(c)
+		return common.NewInternalServerErrorResponse(c)
 	}
 
 	// Check if [bookingStart, bookingEnd] overlaps interval [exStartTime, exEndtime]
@@ -122,7 +391,7 @@ func CreateBooking(c *fiber.Ctx) error {
 	// Check the existing bookings for employee in bookingDate
 	bookings := []model.Booking{}
 	if result := database.DB.Db.Where("employee_id = ? AND DATE(booking_date) = DATE(?) AND status = ?", bookingDto.EmployeeID, bookingDate, model.StatusBooked.String()).Find(&bookings); result.Error != nil {
-		return common.NewInternalServerError(c)
+		return common.NewInternalServerErrorResponse(c)
 	}
 
 	// Check if [bookingStart, bookingEnd] overlaps interval [existingStart, existingEnd]
@@ -186,7 +455,7 @@ func FindAllBookings(c *fiber.Ctx) error {
 		"booking_date": true,
 		"created_at":   true,
 	}
-	orderBy, err = common.ParseSortParam(orderBy, allowedFields)
+	orderBy, err = utils.ParseSortParam(orderBy, allowedFields)
 	fmt.Println(orderBy, err)
 	if err == nil {
 		query = query.Order(orderBy)
@@ -245,13 +514,14 @@ func FindBookingsByUser(c *fiber.Ctx) error {
 	}
 
 	offset := (page - 1) * limit
-	orderBy := c.Query("orderBy")
 
+	orderBy := c.Query("orderBy")
 	allowedFields := map[string]bool{
 		"booking_date": true,
 		"created_at":   true,
 	}
-	orderBy, err = common.ParseSortParam(orderBy, allowedFields)
+	orderBy, err = utils.ParseSortParam(orderBy, allowedFields)
+
 	fmt.Println(orderBy, err)
 
 	query := database.DB.Db.Limit(limit).Offset(offset)
@@ -307,7 +577,7 @@ func CancelBooking(c *fiber.Ctx) error {
 	//check if employee or customer has the associated booking
 	hasBooking, err := common.UserHasBooking(database.DB.Db, uint(userId), uint(id), role)
 	if err != nil {
-		return common.NewInternalServerError(c)
+		return common.NewInternalServerErrorResponse(c)
 	}
 	if !hasBooking {
 		return c.Status(fiber.StatusForbidden).JSON(common.ErrorResponse{
@@ -324,7 +594,7 @@ func CancelBooking(c *fiber.Ctx) error {
 				Message:    "booking not found",
 			})
 		}
-		return common.NewInternalServerError(c)
+		return common.NewInternalServerErrorResponse(c)
 	}
 	//Check if previous booking status is booked
 	if booking.Status != model.StatusBooked.String() {
@@ -336,7 +606,7 @@ func CancelBooking(c *fiber.Ctx) error {
 
 	booking.Status = model.StatusCancelled.String()
 	if result := database.DB.Db.Save(booking); result.Error != nil {
-		return common.NewInternalServerError(c)
+		return common.NewInternalServerErrorResponse(c)
 	}
 
 	return c.Status(fiber.StatusOK).JSON(booking)

@@ -26,7 +26,7 @@ func CreateService(c *fiber.Ctx) error {
 	}
 
 	if result := database.DB.Db.Create(service); result.Error != nil {
-		return common.NewInternalServerError(c)
+		return common.NewInternalServerErrorResponse(c)
 	}
 	return c.Status(fiber.StatusOK).JSON(serviceDto)
 }
@@ -59,7 +59,7 @@ func FindAllServices(c *fiber.Ctx) error {
 		"duration_minutes": true,
 		"created_at":       true,
 	}
-	orderBy, err := common.ParseSortParam(orderByQuery, allowedFields)
+	orderBy, err := utils.ParseSortParam(orderByQuery, allowedFields)
 	if err == nil {
 		query.Order(orderBy)
 	}
