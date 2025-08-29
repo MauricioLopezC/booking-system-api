@@ -7,7 +7,7 @@ type ErrorResponse struct {
 	Message    string
 }
 
-func NewInternalServerError(c *fiber.Ctx) error {
+func NewInternalServerErrorResponse(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusInternalServerError).JSON(ErrorResponse{
 		StatusCode: fiber.StatusInternalServerError,
 		Message:    "Internal server error",
