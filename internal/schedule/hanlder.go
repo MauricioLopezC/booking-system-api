@@ -3,7 +3,6 @@ package schedule
 import (
 	"errors"
 	"strconv"
-	"time"
 
 	"github.com/MauricioLopezC/ReservationSystem/internal/common"
 	"github.com/MauricioLopezC/ReservationSystem/internal/database"
@@ -172,50 +171,4 @@ func (h *ScheduleHandler) DeleteSchedule(c *fiber.Ctx) error {
 	}
 
 	return c.Status(fiber.StatusOK).JSON(schedule)
-}
-
-func (h *ScheduleHandler) FindAvailableSlots(c *fiber.Ctx) error {
-	serviceId := c.QueryInt("serviceId", 0)
-	if serviceId <= 0 {
-		return c.Status(fiber.StatusBadRequest).JSON(common.ErrorResponse{
-			StatusCode: fiber.StatusBadRequest,
-			Message:    "ServiceId must be an integer gt 0",
-		})
-	}
-
-	employeeId := c.QueryInt("employeeId", 0)
-	if employeeId <= 0 {
-		return c.Status(fiber.StatusBadRequest).JSON(common.ErrorResponse{
-			StatusCode: fiber.StatusBadRequest,
-			Message:    "employeeId must be an integer gt 0",
-		})
-	}
-
-	endDateQuery := c.Query("endDate")
-	if endDateQuery == "" {
-		return c.Status(fiber.StatusBadRequest).JSON(common.ErrorResponse{
-			StatusCode: fiber.StatusBadRequest,
-			Message:    "Required query parameter: endDate",
-		})
-	}
-	endDate, err := time.Parse(time.DateOnly, endDateQuery)
-	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(common.ErrorResponse{
-			StatusCode: fiber.StatusBadRequest,
-			Message:    err.Error(),
-		})
-	}
-	startDate := time.Now()
-
-	timeSlots, err := h.scheduleService.FindAvailableSlots(uint(employeeId), uint(serviceId), startDate, endDate)
-	if err != nil {
-		if errors.Is(err, common.ErrValidation) {
-			return c.Status(fiber.StatusBadRequest).JSON(common.ErrorResponse{
-				StatusCode: fiber.StatusBadRequest,
-				Message:    err.Error(),
-			})
-		}
-		return common.NewInternalServerErrorResponse(c)
-	}
-	return c.Status(fiber.StatusOK).JSON(timeSlots)
 }
