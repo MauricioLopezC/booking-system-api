@@ -28,12 +28,13 @@ type Service struct {
 }
 
 // Status: 'booked', 'cancelled', 'completed'
+// Creating unique index for EmployeeID and BookingDate
 type Booking struct {
 	gorm.Model
 	CustomerID  uint      `gorm:"not null"`
-	EmployeeID  uint      `gorm:"not null"`
+	EmployeeID  uint      `gorm:"not null;uniqueIndex:idx_employee_bookingdate"`
 	ServiceID   uint      `gorm:"not null"`
-	BookingDate time.Time `gorm:"not null"`
+	BookingDate time.Time `gorm:"not null;uniqueIndex:idx_employee_bookingdate"`
 	Status      string    `gorm:"not null"`
 	Notes       string
 	Customer    User    `gorm:"foreignKey:CustomerID"`
