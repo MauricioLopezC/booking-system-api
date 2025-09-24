@@ -3,79 +3,65 @@ package bookings
 import (
 	"errors"
 	"fmt"
+	"slices"
 	"time"
 
 	"github.com/MauricioLopezC/ReservationSystem/internal/common"
 	"github.com/MauricioLopezC/ReservationSystem/internal/model"
+	"github.com/MauricioLopezC/ReservationSystem/internal/slots"
 	"gorm.io/gorm"
 )
 
 type BookingsService struct {
-	db *gorm.DB
+	db           *gorm.DB
+	slotsService *slots.SlotsService
 }
 
-func NewBookingsService(db *gorm.DB) *BookingsService {
-	return &BookingsService{db: db}
+func NewBookingsService(db *gorm.DB, slotsS *slots.SlotsService) *BookingsService {
+	return &BookingsService{db: db, slotsService: slotsS}
 }
 
-func (bs *BookingsService) CreateBooking(booking model.Booking) (*model.Booking, error) {
+func (bs *BookingsService) CreateBooking(bookingDto BookingDto, customerID uint) (*model.Booking, error) {
+	booking := model.Booking{
+		CustomerID:  customerID,
+		EmployeeID:  bookingDto.EmployeeID,
+		ServiceID:   bookingDto.ServiceID,
+		BookingDate: bookingDto.BookingDate,
+		Status:      model.StatusBooked.String(),
+		Notes:       bookingDto.Notes,
+	}
+
 	//check if booking date is greater than now, and is Before new two weeks
 	now := time.Now()
 	if !booking.BookingDate.After(now) {
-		return nil, fmt.Errorf("%w: %s", common.ErrValidation, "Booking datetime must be greater than the current one")
+		return nil, fmt.Errorf("%w: %s", common.ErrValidation, "BookingDate must be greater than the current datetime")
 	}
 
-	if booking.BookingDate.Before(now.AddDate(0, 0, 14)) {
-		return nil, fmt.Errorf("%w: %s", common.ErrValidation, "Booking date must no exceed 2 weks")
+	if !booking.BookingDate.Before(now.AddDate(0, 0, 14)) {
+		return nil, fmt.Errorf("%w: %s", common.ErrValidation, "BookingDate must no exceed 2 weks")
 	}
 
-	var service model.Service
-	if result := bs.db.First(&service, booking.ServiceID); result.Error != nil {
-		return nil, fmt.Errorf("%w: %s", common.ErrConflict, "Service not assigned to employee")
-	}
-
-	//check if employee has service
-	hasService, err := common.EmployeeHasService(bs.db, booking.EmployeeID, booking.ServiceID)
+	availableSlots, err := bs.slotsService.FindAvailableSlots(booking.EmployeeID, booking.ServiceID, booking.BookingDate, booking.BookingDate)
 	if err != nil {
 		return nil, err
 	}
 
-	if !hasService {
-		return nil, fmt.Errorf("%w: %s", common.ErrConflict, "Service not assigned to employee")
+	bookingDateKey := booking.BookingDate.Format("2006-01-02")
+	daySlots, ok := availableSlots[bookingDateKey]
+	if !ok {
+		return nil, fmt.Errorf("%w: %s", common.ErrConflict, "There are no available appointments for the booking date")
+	}
+	if !slices.Contains(daySlots, booking.BookingDate) {
+		return nil, fmt.Errorf("%w: %s", common.ErrConflict, "The booking time does't not match  with any of available slots for the day")
 	}
 
-	//1. check if BookingDate match with a available schedule
-	//find schedules by EmployeeID
-	daySchedule := []model.Schedule{}
-	bs.db.Where("employee_id = ? AND week_day = ?",
-		booking.EmployeeID,
-		int(booking.BookingDate.Local().Weekday()),
-	).Find(&daySchedule)
-
-	if len(daySchedule) == 0 {
-		return nil, fmt.Errorf("%w: %s", common.ErrValidation, "Employee or Employee schedule not found")
-	}
-
-	//exeptions
-	exceptions := []model.ScheduleOverride{}
-	if result := bs.db.Where("DATE(exception_date) = DATE(?) ", booking.BookingDate).Find(&exceptions); result.Error != nil {
-		return nil, result.Error
-	}
-
-	//existing existingBookings
-	existingBookings := []model.Booking{}
-	if result := bs.db.Where("employee_id = ? AND DATE(booking_date) = DATE(?) AND status = ?", booking.EmployeeID, booking.BookingDate, model.StatusBooked.String()).Find(&existingBookings); result.Error != nil {
-		return nil, result.Error
-	}
-
-	//check if is an available slot then update or return err
-	isAvailable := bs.checkSlot(booking, service, daySchedule, exceptions, existingBookings)
-	if !isAvailable {
-		return nil, fmt.Errorf("%w: %s", common.ErrConflict, "Booking cannot be scheduled on the selected datetime")
-	}
 	if result := bs.db.Create(&booking); result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrDuplicatedKey) {
+			return nil, fmt.Errorf("%w: %s", common.ErrConflict, "The booking has already been reserved!")
+		}
 		return nil, result.Error
 	}
+
 	return &booking, nil
 }
 
@@ -99,7 +85,7 @@ func (bs *BookingsService) FindAllBookings(limit, page int, orderBy string) (*Al
 
 }
 
-func (bs *BookingsService) FindOneBooking(id int) (*model.Booking, error) {
+func (bs *BookingsService) FindOneBooking(id uint) (*model.Booking, error) {
 	booking := new(model.Booking)
 	if restult := bs.db.First(booking, id); restult.Error != nil {
 		if errors.Is(restult.Error, gorm.ErrRecordNotFound) {
@@ -168,20 +154,21 @@ func (bs *BookingsService) CancelBooking(id int, userId uint, userRole string) (
 	return &booking, nil
 }
 
-func (bs *BookingsService) UpdateBooking(booking model.Booking) (*model.Booking, error) {
+func (bs *BookingsService) Update(bookingID uint) (*model.Booking, error) {
 	//check if booking date is greater than now, and is Before new two weeks
+
+	booking, err := bs.FindOneBooking(bookingID)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %s", common.ErrRecordNotFound, "Booking not found")
+	}
+
 	now := time.Now()
 	if !booking.BookingDate.After(now) {
 		return nil, fmt.Errorf("%w: %s", common.ErrValidation, "Booking datetime must be greater than the current one")
 	}
 
-	if booking.BookingDate.Before(now.AddDate(0, 0, 14)) {
+	if booking.BookingDate.After(now.AddDate(0, 0, 14)) {
 		return nil, fmt.Errorf("%w: %s", common.ErrValidation, "Booking date must no exceed 2 weks")
-	}
-
-	var service model.Service
-	if result := bs.db.First(&service, booking.ServiceID); result.Error != nil {
-		return nil, fmt.Errorf("%w: %s", common.ErrConflict, "Service not assigned to employee")
 	}
 
 	//check if employee has service
@@ -194,98 +181,26 @@ func (bs *BookingsService) UpdateBooking(booking model.Booking) (*model.Booking,
 		return nil, fmt.Errorf("%w: %s", common.ErrConflict, "Service not assigned to employee")
 	}
 
-	//1. check if BookingDate match with a available schedule
-	//find schedules by EmployeeID
-	daySchedule := []model.Schedule{}
-	bs.db.Where("employee_id = ? AND week_day = ?",
-		booking.EmployeeID,
-		int(booking.BookingDate.Local().Weekday()),
-	).Find(&daySchedule)
-
-	if len(daySchedule) == 0 {
-		return nil, fmt.Errorf("%w: %s", common.ErrValidation, "Employee or Employee schedule not found")
+	availableSlots, err := bs.slotsService.FindAvailableSlots(booking.EmployeeID, booking.ServiceID, booking.BookingDate, booking.BookingDate)
+	if err != nil {
+		return nil, err
 	}
 
-	//exeptions
-	exceptions := []model.ScheduleOverride{}
-	if result := bs.db.Where("DATE(exception_date) = DATE(?) ", booking.BookingDate).Find(&exceptions); result.Error != nil {
+	bookingDateKey := booking.BookingDate.Format("2006-01-02")
+	daySlots, ok := availableSlots[bookingDateKey]
+	if !ok {
+		return nil, fmt.Errorf("%w: %s", common.ErrConflict, "There are no available appointments for the booking date")
+	}
+	if !slices.Contains(daySlots, booking.BookingDate) {
+		return nil, fmt.Errorf("%w: %s", common.ErrConflict, "The booking time does't not match  with any of available slots for the day")
+	}
+
+	if result := bs.db.Save(&booking); result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrDuplicatedKey) {
+			return nil, fmt.Errorf("%w: %s", common.ErrConflict, "The booking has already been reserved!")
+		}
 		return nil, result.Error
 	}
 
-	//existing existingBookings
-	existingBookings := []model.Booking{}
-	if result := bs.db.Where("employee_id = ? AND DATE(booking_date) = DATE(?) AND status = ?", booking.EmployeeID, booking.BookingDate, model.StatusBooked.String()).Find(&existingBookings); result.Error != nil {
-		return nil, result.Error
-	}
-
-	//check if is an available slot then update or return err
-	isAvailable := bs.checkSlot(booking, service, daySchedule, exceptions, existingBookings)
-	if !isAvailable {
-		return nil, fmt.Errorf("%w: %s", common.ErrConflict, "Booking cannot be scheduled on the selected datetime")
-	}
-
-	if result := bs.db.Save(booking); result.Error != nil {
-		return nil, result.Error
-	}
-
-	return &booking, nil
-}
-
-func (bs *BookingsService) checkSlot(
-	booking model.Booking,
-	service model.Service,
-	daySchedule []model.Schedule,
-	exceptions []model.ScheduleOverride,
-	existingBookings []model.Booking,
-) bool {
-	//Interval [BookingStart, BookingEnd] outside interval [scheduleStartTime, scheduleEndTime]
-	hasMatch := false
-	bookingStart := booking.BookingDate.Local()
-	bookingEnd := bookingStart.Add(time.Duration(service.DurationMinutes) * time.Minute)
-	for _, schedule := range daySchedule {
-		scheduleStart := time.Date(bookingStart.Year(), bookingStart.Month(), bookingStart.Day(), schedule.StartTime.Hour(), schedule.StartTime.Minute(), 0, 0, time.Local)
-		scheduleEnd := time.Date(bookingStart.Year(), bookingStart.Month(), bookingStart.Day(), schedule.EndTime.Hour(), schedule.EndTime.Minute(), 0, 0, time.Local)
-		if (bookingStart.After(scheduleStart) || bookingStart.Equal(scheduleStart)) &&
-			(bookingEnd.Before(scheduleEnd) || bookingEnd.Equal(scheduleEnd)) {
-			hasMatch = true
-			break
-		}
-	}
-
-	if !hasMatch {
-		return false
-	}
-
-	// Check for schedule exeptions
-	// check if [bookingStart, bookingEnd] overlaps interval [exStartTime, exEndtime]
-	// excluding the extremes, for each exception of the day
-	isBlocked := false
-	for _, ex := range exceptions {
-		if ex.AllDay {
-			isBlocked = true
-			break
-		}
-		if bookingStart.Before(*ex.EndTime) && bookingEnd.After(*ex.StartTime) {
-			isBlocked = true
-			break
-		}
-	}
-	if isBlocked {
-		return false
-	}
-
-	// Check the existing existingBookings for employee in bookingDate
-	// Check if [bookingStart, bookingEnd] overlaps interval [existingStart, existingEnd]
-	for _, booking := range existingBookings {
-		existingStart := booking.BookingDate
-		existingEnd := booking.BookingDate.Add(time.Duration(service.DurationMinutes) * time.Minute)
-		if bookingStart.Before(existingEnd) && bookingStart.After(existingStart) {
-			isBlocked = true
-			break
-		}
-	}
-	if isBlocked {
-		return false
-	}
-	return true
+	return booking, nil //booking is a pointer
 }

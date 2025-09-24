@@ -5,6 +5,7 @@ import (
 	"github.com/MauricioLopezC/ReservationSystem/internal/database"
 	"github.com/MauricioLopezC/ReservationSystem/internal/model"
 	"github.com/MauricioLopezC/ReservationSystem/internal/schedule"
+	"github.com/MauricioLopezC/ReservationSystem/internal/slots"
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -24,10 +25,13 @@ func main() {
 	scheduleService := schedule.NewScheduleService(database.DB.Db)
 	scheduleHandler := schedule.NewScheduleHandler(scheduleService)
 
-	bookingsService := bookings.NewBookingsService(database.DB.Db)
+	slotsService := slots.NewSlotsService(database.DB.Db)
+	slotsHandler := slots.NewSlotsHandler(slotsService)
+
+	bookingsService := bookings.NewBookingsService(database.DB.Db, slotsService)
 	bookingsHandler := bookings.NewBookingsHandler(bookingsService)
 
-	SetupRoutes(app, scheduleHandler, bookingsHandler)
+	SetupRoutes(app, scheduleHandler, bookingsHandler, slotsHandler)
 
 	app.Listen(":3000")
 }

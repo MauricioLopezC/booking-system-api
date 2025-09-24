@@ -5,6 +5,7 @@ import (
 	"github.com/MauricioLopezC/ReservationSystem/internal/bookings"
 	"github.com/MauricioLopezC/ReservationSystem/internal/schedule"
 	"github.com/MauricioLopezC/ReservationSystem/internal/services"
+	"github.com/MauricioLopezC/ReservationSystem/internal/slots"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 )
@@ -14,6 +15,7 @@ func SetupRoutes(
 	app *fiber.App,
 	schedulesH *schedule.ScheduleHandler,
 	bookingsH *bookings.BookingsHandler,
+	slotsH *slots.SlotsHandler,
 ) {
 	//middleware
 	api := app.Group("/api", logger.New())
@@ -25,7 +27,7 @@ func SetupRoutes(
 
 	//Bookings
 	booking := api.Group("/booking")
-	booking.Post("/", auth.Protected(), auth.RoleMiddleware("employee", "admin"), bookingsH.CreateBooking)
+	booking.Post("/", auth.Protected(), auth.RoleMiddleware("employee", "admin"), bookingsH.Create)
 	booking.Get("/", auth.Protected(), auth.RoleMiddleware("admin"), bookingsH.FindAll)
 	booking.Post("/:id/cancel", auth.Protected(), bookingsH.CancelBooking)
 	//cancel, reasign
@@ -38,7 +40,7 @@ func SetupRoutes(
 	scheduleGroup.Delete("/:id", auth.Protected(), auth.RoleMiddleware("employee", "admin"), schedulesH.DeleteSchedule)
 
 	//available slots
-	api.Get("/available-slots", schedulesH.FindAvailableSlots) //Customer find all available slots for employee and service
+	api.Get("/available-slots", slotsH.FindAvailableSlots) //Customer find all available slots for employee and service
 
 	//current user specific data
 	meGroup := api.Group("/me")

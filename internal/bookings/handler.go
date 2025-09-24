@@ -23,7 +23,7 @@ func NewBookingsHandler(bookingsSerice *BookingsService) *BookingsHandler {
 	return &BookingsHandler{bookingsService: bookingsSerice}
 }
 
-func (h *BookingsHandler) CreateBooking(c *fiber.Ctx) error {
+func (h *BookingsHandler) Create(c *fiber.Ctx) error {
 	bookingDto := new(BookingDto)
 
 	if err := c.BodyParser(bookingDto); err != nil {
@@ -41,16 +41,7 @@ func (h *BookingsHandler) CreateBooking(c *fiber.Ctx) error {
 	claims := user.Claims.(jwt.MapClaims)
 	userId := uint(claims["user_id"].(float64))
 
-	booking := model.Booking{
-		CustomerID:  userId,
-		EmployeeID:  bookingDto.EmployeeID,
-		ServiceID:   bookingDto.ServiceID,
-		BookingDate: bookingDto.BookingDate,
-		Status:      model.StatusBooked.String(),
-		Notes:       bookingDto.Notes,
-	}
-
-	newBooking, err := h.bookingsService.CreateBooking(booking)
+	newBooking, err := h.bookingsService.CreateBooking(*bookingDto, userId)
 	if err != nil {
 		if errors.Is(err, common.ErrRecordNotFound) {
 			return c.Status(fiber.StatusNotFound).JSON(common.ErrorResponse{
@@ -119,7 +110,7 @@ func (h *BookingsHandler) FindOne(c *fiber.Ctx) error {
 		})
 	}
 
-	createdBooking, err := h.bookingsService.FindOneBooking(id)
+	createdBooking, err := h.bookingsService.FindOneBooking(uint(id))
 	if err != nil {
 		if errors.Is(err, common.ErrRecordNotFound) {
 			return c.Status(fiber.StatusNotFound).JSON(common.ErrorResponse{
@@ -133,7 +124,7 @@ func (h *BookingsHandler) FindOne(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(createdBooking)
 }
 
-func (h *BookingsHandler) UpdateBooking(c *fiber.Ctx) error {
+func (h *BookingsHandler) Update(c *fiber.Ctx) error {
 	id, err := c.ParamsInt("id")
 	if err != nil || id <= 0 {
 		return c.Status(fiber.StatusBadRequest).JSON(common.ErrorResponse{
@@ -154,7 +145,8 @@ func (h *BookingsHandler) UpdateBooking(c *fiber.Ctx) error {
 		})
 	}
 
-	booking, err := h.bookingsService.FindOneBooking(id)
+	updatedBooking, err := h.bookingsService.Update(uint(id))
+
 	if err != nil {
 		if errors.Is(err, common.ErrRecordNotFound) {
 			return c.Status(fiber.StatusNotFound).JSON(common.ErrorResponse{
@@ -162,10 +154,6 @@ func (h *BookingsHandler) UpdateBooking(c *fiber.Ctx) error {
 				Message:    err.Error(),
 			})
 		}
-		return common.NewInternalServerErrorResponse(c)
-	}
-	updatedBooking, err := h.bookingsService.UpdateBooking(*booking)
-	if err != nil {
 		if errors.Is(err, common.ErrConflict) {
 			return c.Status(fiber.StatusConflict).JSON(common.ErrorResponse{
 				StatusCode: fiber.StatusConflict,
@@ -351,7 +339,7 @@ func CreateBooking(c *fiber.Ctx) error {
 	// Check for schedule exeptions
 	bookingDate := bookingDto.BookingDate
 	exceptions := []model.ScheduleOverride{}
-	if result := database.DB.Db.Where("DATE(exception_date) = DATE(?) ", bookingDate).Find(&exceptions); result.Error != nil {
+	if result := database.DB.Db.Where("DATE(date) = DATE(?) ", bookingDate).Find(&exceptions); result.Error != nil {
 		return common.NewInternalServerErrorResponse(c)
 	}
 
@@ -538,10 +526,6 @@ func FindBookingsByUser(c *fiber.Ctx) error {
 		Data:     bookings,
 		Metadata: metadata{TotalItems: count},
 	})
-}
-
-func UpdateBooking() {
-
 }
 
 // Employee or customer can cancel their bookings, use in
