@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 )
@@ -18,7 +17,7 @@ func ParseSortParam(sortParam string, allowedFields map[string]bool) (string, er
 	}
 
 	if !allowedFields[fieldName] {
-		return "", errors.New(fmt.Sprintf("field %s is not allowed", fieldName))
+		return "", fmt.Errorf("field %s is not allowed", fieldName)
 	}
 
 	if strings.HasPrefix(sortParam, "-") {
