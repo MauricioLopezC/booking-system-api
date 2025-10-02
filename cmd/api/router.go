@@ -27,14 +27,14 @@ func SetupRoutes(
 	authGroup.Post("/register", auth.Register)
 
 	//Bookings
-	booking := api.Group("/booking")
+	booking := api.Group("/bookings")
 	booking.Post("/", auth.Protected(), auth.RoleMiddleware("employee", "admin"), bookingsH.Create)
 	booking.Get("/", auth.Protected(), auth.RoleMiddleware("admin"), bookingsH.FindAll)
 	booking.Post("/:id/cancel", auth.Protected(), bookingsH.CancelBooking)
 	//cancel, reasign
 
 	//Shedules
-	scheduleGroup := api.Group("/schedule")
+	scheduleGroup := api.Group("/schedules")
 	scheduleGroup.Post("/", auth.Protected(), auth.RoleMiddleware("employee", "admin"), schedulesH.CreateSchedule)
 	scheduleGroup.Get("/", auth.Protected(), auth.RoleMiddleware("admin"), schedulesH.FindAllSchedules) //Admin get all employee schedules
 	scheduleGroup.Get("/:id", schedulesH.FindOneSchedule)
