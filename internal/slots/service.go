@@ -152,13 +152,7 @@ func (ss *SlotsService) getSlots(
 					existingStart := booking.BookingDate
 					existingEnd := booking.BookingDate.Add(time.Duration(booking.Service.DurationMinutes) * time.Minute)
 					currentEnd := current.Add(duration)
-					// if current.Before(existingEnd) && currentEnd.After(existingStart) {
-					// 	fmt.Println("BLOCKED!!!")
-					// 	blocked = true
-					// 	break
-					// }
 					if existingStart.Before(currentEnd) && existingEnd.After(current) {
-						fmt.Println("BLOCKED!!!")
 						blocked = true
 						break
 					}
