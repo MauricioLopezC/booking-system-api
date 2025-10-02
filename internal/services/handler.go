@@ -1,39 +1,52 @@
 package services
 
 import (
+	"errors"
+	"fmt"
+
 	"github.com/MauricioLopezC/ReservationSystem/internal/common"
-	"github.com/MauricioLopezC/ReservationSystem/internal/database"
-	"github.com/MauricioLopezC/ReservationSystem/internal/model"
 	"github.com/MauricioLopezC/ReservationSystem/internal/utils"
 	"github.com/gofiber/fiber/v2"
 )
 
+type ServicesHandler struct {
+	servicesService *ServicesService
+}
+
+func NewServicesHandler(servicesService *ServicesService) *ServicesHandler {
+	return &ServicesHandler{servicesService: servicesService}
+}
+
 // Use in POST /service endpoint with required roles: admin
-func CreateService(c *fiber.Ctx) error {
+func (h *ServicesHandler) Create(c *fiber.Ctx) error {
 	serviceDto := new(CreateServiceDto)
 
-	if err := utils.ParseBodyAndValidate(c, serviceDto); err != nil {
+	if err := c.BodyParser(serviceDto); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(common.ErrorResponse{
 			StatusCode: fiber.StatusBadRequest,
-			Message:    err.Message,
+			Message:    err.Error(),
 		})
 	}
 
-	service := model.Service{
-		Name:            serviceDto.Name,
-		DurationMinutes: serviceDto.DurationMinutes,
-		Price:           serviceDto.Price,
+	if err := utils.Validate(serviceDto); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(common.ErrorResponse{
+			StatusCode: fiber.StatusBadRequest,
+			Message:    err.Error(),
+		})
 	}
 
-	if result := database.DB.Db.Create(service); result.Error != nil {
+	service, err := h.servicesService.Create(*serviceDto)
+	if err != nil {
+		// unexpected error
+		fmt.Print(err.Error())
 		return common.NewInternalServerErrorResponse(c)
 	}
-	return c.Status(fiber.StatusOK).JSON(serviceDto)
+	return c.Status(fiber.StatusOK).JSON(service)
 }
 
 // Use in GET /services endpoint, public route, use employeeId optional
 // param to get the employee services
-func FindAllServices(c *fiber.Ctx) error {
+func (h *ServicesHandler) FindAll(c *fiber.Ctx) error {
 	limit := c.QueryInt("limit")
 	if limit <= 0 {
 		return c.Status(fiber.StatusBadRequest).JSON(common.ErrorResponse{
@@ -50,35 +63,72 @@ func FindAllServices(c *fiber.Ctx) error {
 		})
 	}
 
-	offset := (page - 1) * limit
-	query := database.DB.Db.Limit(limit).Offset(offset)
-
-	orderByQuery := c.Query("orderBy")
+	orderBy := c.Query("orderBy")
 	allowedFields := map[string]bool{
-		"price":            true,
-		"duration_minutes": true,
-		"created_at":       true,
+		"booking_date": true,
+		"created_at":   true,
 	}
-	orderBy, err := utils.ParseSortParam(orderByQuery, allowedFields)
-	if err == nil {
-		query.Order(orderBy)
+	orderBy, _ = utils.ParseSortParam(orderBy, allowedFields)
+
+	allServicesResponse, err := h.servicesService.FindAll(limit, page, orderBy)
+	if err != nil {
+		return common.NewInternalServerErrorResponse(c)
+	}
+	return c.Status(fiber.StatusOK).JSON(allServicesResponse)
+}
+
+func (h *ServicesHandler) Update(c *fiber.Ctx) error {
+	id, err := c.ParamsInt("id")
+	if err != nil || id <= 0 {
+		return c.Status(fiber.StatusBadRequest).JSON(common.ErrorResponse{
+			StatusCode: fiber.StatusBadRequest,
+			Message:    "Numeric string greater than 0 is expected",
+		})
 	}
 
-	services := []model.Service{}
-	query.Find(&services)
+	var serviceDto UpdateServiceDto
+	if err := c.BodyParser(&serviceDto); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(common.ErrorResponse{
+			StatusCode: fiber.StatusBadRequest,
+			Message:    err.Error(),
+		})
+	}
 
-	var count int64
-	database.DB.Db.Model(&model.Service{}).Count(&count)
-	return c.Status(fiber.StatusOK).JSON(AllServicesResponse{
-		Data:     services,
-		Metadata: metadata{TotalItems: count},
-	})
+	updatedService, err := h.servicesService.Update(uint(id), serviceDto)
+	if err != nil {
+		if errors.Is(err, common.ErrRecordNotFound) {
+			return c.Status(fiber.StatusNotFound).JSON(common.ErrorResponse{
+				StatusCode: fiber.StatusNotFound,
+				Message:    err.Error(),
+			})
+		}
+		return common.NewInternalServerErrorResponse(c)
+	}
+
+	return c.Status(fiber.StatusOK).JSON(updatedService)
 }
 
-func UpdateService() {
+func (h *ServicesHandler) Delete(c *fiber.Ctx) error {
+	id, err := c.ParamsInt("id")
+	if err != nil || id <= 0 {
+		return c.Status(fiber.StatusBadRequest).JSON(common.ErrorResponse{
+			StatusCode: fiber.StatusBadRequest,
+			Message:    "Numeric string greater than 0 is expected",
+		})
+	}
 
+	deletedService, err := h.servicesService.Delete(uint(id))
+	if err != nil {
+		if errors.Is(err, common.ErrRecordNotFound) {
+			return c.Status(fiber.StatusNotFound).JSON(common.ErrorResponse{
+				StatusCode: fiber.StatusNotFound,
+				Message:    err.Error(),
+			})
+		}
+		return common.NewInternalServerErrorResponse(c)
+	}
+	return c.Status(fiber.StatusOK).JSON(deletedService)
 }
 
-func FindServicesByEmployee() {
-
-}
+//TODO: find user services, connect service with employee
+//
