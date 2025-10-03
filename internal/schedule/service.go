@@ -119,7 +119,15 @@ func (ss *ScheduleService) FindSchedulesByEmployee(employeeId uint) ([]model.Sch
 
 func (ss *ScheduleService) DeleteSchedule(id uint) (*model.Schedule, error) {
 	var schedule model.Schedule
-	if result := ss.db.Where("id = ?", id).Delete(&schedule); result.Error != nil {
+
+	if result := ss.db.First(&schedule); result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return nil, fmt.Errorf("%w: %s", common.ErrRecordNotFound, "schedule")
+		}
+		return nil, result.Error
+	}
+
+	if result := ss.db.Delete(&schedule); result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			return nil, fmt.Errorf("%w: %s", common.ErrRecordNotFound, "schedule")
 		}
