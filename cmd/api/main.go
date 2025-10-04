@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/MauricioLopezC/ReservationSystem/internal/auth"
 	"github.com/MauricioLopezC/ReservationSystem/internal/bookings"
 	"github.com/MauricioLopezC/ReservationSystem/internal/database"
 	"github.com/MauricioLopezC/ReservationSystem/internal/model"
@@ -35,7 +36,10 @@ func main() {
 	servicesService := services.NewServicesService(database.DB.Db)
 	servicesHandler := services.NewServicesHandler(servicesService)
 
-	SetupRoutes(app, scheduleHandler, bookingsHandler, slotsHandler, servicesHandler)
+	authService := auth.NewAuthService(database.DB.Db)
+	authHandler := auth.NewAuthHandler(authService)
+
+	SetupRoutes(app, scheduleHandler, bookingsHandler, slotsHandler, servicesHandler, authHandler)
 
 	app.Listen(":3000")
 }

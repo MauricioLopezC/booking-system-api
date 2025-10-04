@@ -10,21 +10,21 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/logger"
 )
 
-// TODO: user plural resource names in endpoints
 func SetupRoutes(
 	app *fiber.App,
 	schedulesH *schedule.ScheduleHandler,
 	bookingsH *bookings.BookingsHandler,
 	slotsH *slots.SlotsHandler,
 	servicesH *services.ServicesHandler,
+	authH *auth.AuthHandler,
 ) {
 	//middleware
 	api := app.Group("/api", logger.New())
 
 	//auth
 	authGroup := api.Group("/auth")
-	authGroup.Post("/login", auth.Login)
-	authGroup.Post("/register", auth.Register)
+	authGroup.Post("/login", authH.Login)
+	authGroup.Post("/register", authH.Register)
 
 	//Bookings
 	booking := api.Group("/bookings")
@@ -50,7 +50,9 @@ func SetupRoutes(
 
 	//Services
 	serviceGroup := api.Group("/services")
-	serviceGroup.Post("/", auth.Protected(), auth.RoleMiddleware("admin"), servicesH.Create)
+	serviceGroup.Post("/", auth.Protected(), auth.RoleMiddleware("admin", "employee"), servicesH.Create)
 	serviceGroup.Get("/", servicesH.FindAll)
+	serviceGroup.Patch("/:id", servicesH.Update)
+	serviceGroup.Delete("/:id", servicesH.Delete)
 
 }
