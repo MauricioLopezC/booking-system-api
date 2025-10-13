@@ -69,16 +69,16 @@ func (h *BookingsHandler) Create(c *fiber.Ctx) error {
 }
 
 func (h *BookingsHandler) FindAll(c *fiber.Ctx) error {
-	limit, err := strconv.Atoi(c.Query("limit", "10"))
-	if err != nil || limit <= 0 {
+	limit := c.QueryInt("limit")
+	if limit <= 0 {
 		return c.Status(fiber.ErrBadRequest.Code).JSON(common.ErrorResponse{
 			StatusCode: 400,
 			Message:    "Limit muste be an integer number and gt 0",
 		})
 	}
 
-	page, err := strconv.Atoi(c.Query("page", "1"))
-	if err != nil || page <= 0 {
+	page := c.QueryInt("page")
+	if page <= 0 {
 		return c.Status(fiber.ErrBadRequest.Code).JSON(common.ErrorResponse{
 			StatusCode: 400,
 			Message:    "page must be an integer number and gt 0",
@@ -171,16 +171,16 @@ func (h *BookingsHandler) Update(c *fiber.Ctx) error {
 }
 
 func (h *BookingsHandler) FindBookingsByUser(c *fiber.Ctx) error {
-	limit, err := strconv.Atoi(c.Query("limit", "10"))
-	if err != nil || limit <= 0 {
+	limit := c.QueryInt("limit")
+	if limit <= 0 {
 		return c.Status(fiber.StatusBadRequest).JSON(common.ErrorResponse{
 			StatusCode: fiber.StatusBadRequest,
 			Message:    "Limit muste be an integer number and gt 0",
 		})
 	}
 
-	page, err := strconv.Atoi(c.Query("page", "1"))
-	if err != nil || page <= 0 {
+	page := c.QueryInt("page")
+	if page <= 0 {
 		return c.Status(fiber.StatusBadRequest).JSON(common.ErrorResponse{
 			StatusCode: fiber.StatusBadRequest,
 			Message:    "page must be an integer number and gt 0",
@@ -192,7 +192,7 @@ func (h *BookingsHandler) FindBookingsByUser(c *fiber.Ctx) error {
 		"booking_date": true,
 		"created_at":   true,
 	}
-	orderBy, err = utils.ParseSortParam(orderBy, allowedFields)
+	orderBy, err := utils.ParseSortParam(orderBy, allowedFields)
 
 	//get user data from context
 	userToken, ok1 := c.Locals("user").(*jwt.Token)
