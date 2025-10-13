@@ -19,7 +19,7 @@ type UserResponse struct {
 	Role     string `json:"role"`
 }
 
-type AuthResponse struct {
+type LoginResponse struct {
 	UserResponse
 	Token string
 }
