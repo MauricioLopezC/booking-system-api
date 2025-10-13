@@ -25,7 +25,7 @@ func (ss *ServicesService) Create(serviceDto CreateServiceDto) (*model.Service, 
 		Price:           serviceDto.Price,
 	}
 
-	if result := ss.db.Create(service); result.Error != nil {
+	if result := ss.db.Create(&service); result.Error != nil {
 		return nil, result.Error
 	}
 
@@ -91,7 +91,15 @@ func (ss *ServicesService) Update(id uint, serviceDto UpdateServiceDto) (*model.
 
 func (ss *ServicesService) Delete(id uint) (*model.Service, error) {
 	var service model.Service
-	if result := ss.db.Where("id = ?", id).Delete(&service); result.Error != nil {
+
+	if result := ss.db.First(&service, id); result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return nil, fmt.Errorf("%w: %s", common.ErrRecordNotFound, "service")
+		}
+		return nil, result.Error
+	}
+
+	if result := ss.db.Delete(&service); result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			return nil, fmt.Errorf("%w: %s", common.ErrRecordNotFound, "service")
 		}
