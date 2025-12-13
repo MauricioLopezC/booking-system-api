@@ -14,10 +14,9 @@ type ScheduleHandler struct {
 
 func NewScheduleHandler(scheduleService *ScheduleService) *ScheduleHandler {
 	return &ScheduleHandler{scheduleService: scheduleService}
-
 }
 
-func (h *ScheduleHandler) CreateCurrentUserSchedule(c *fiber.Ctx) error {
+func (h *ScheduleHandler) CreateMySchedule(c *fiber.Ctx) error {
 	scheduleDto := new(CreateScheduleDto)
 
 	if err := c.BodyParser(scheduleDto); err != nil {
@@ -39,7 +38,7 @@ func (h *ScheduleHandler) CreateCurrentUserSchedule(c *fiber.Ctx) error {
 		})
 	}
 
-	schedule, err := h.scheduleService.CreateSchedule(authUser.ID, *scheduleDto)
+	schedule, err := h.scheduleService.Create(authUser.ID, *scheduleDto)
 	if err != nil {
 		if errors.Is(err, common.ErrValidation) {
 			return c.Status(fiber.StatusBadRequest).JSON(common.ErrorResponse{
@@ -89,6 +88,7 @@ func (h *ScheduleHandler) FindAll(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(allSchedueles)
 }
 
+// Admin only
 func (h *ScheduleHandler) FindOne(c *fiber.Ctx) error {
 	id, err := c.ParamsInt("id")
 	if err != nil || id <= 0 {
@@ -98,7 +98,7 @@ func (h *ScheduleHandler) FindOne(c *fiber.Ctx) error {
 		})
 	}
 
-	schedule, err := h.scheduleService.FindOneSchedule(uint(id))
+	schedule, err := h.scheduleService.FindOne(uint(id))
 	if err != nil {
 		if errors.Is(err, common.ErrRecordNotFound) {
 			return c.Status(fiber.StatusNotFound).JSON(common.ErrorResponse{
@@ -113,7 +113,7 @@ func (h *ScheduleHandler) FindOne(c *fiber.Ctx) error {
 
 // Use in endpoint: GET /me/schedules
 // there is no need for paginate because employee needs to see all his schedules
-func (h *ScheduleHandler) CurrentUserFindAll(c *fiber.Ctx) error {
+func (h *ScheduleHandler) FindMySchedules(c *fiber.Ctx) error {
 	authUser, err := utils.GetAuthUser(c)
 	if err != nil {
 		return c.Status(fiber.StatusUnauthorized).JSON(common.ErrorResponse{
@@ -122,7 +122,7 @@ func (h *ScheduleHandler) CurrentUserFindAll(c *fiber.Ctx) error {
 		})
 	}
 
-	schedules, err := h.scheduleService.FindSchedulesByEmployee(uint(authUser.ID))
+	schedules, err := h.scheduleService.FindByUserId(uint(authUser.ID))
 	if err != nil {
 		return common.NewInternalServerErrorResponse(c)
 	}
@@ -130,7 +130,7 @@ func (h *ScheduleHandler) CurrentUserFindAll(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(schedules)
 }
 
-func (h *ScheduleHandler) CurrentUserDelete(c *fiber.Ctx) error {
+func (h *ScheduleHandler) DeleteMySchedules(c *fiber.Ctx) error {
 	id, err := c.ParamsInt("id")
 	if err != nil || id <= 0 {
 		return c.Status(fiber.StatusBadRequest).JSON(common.ErrorResponse{
@@ -147,7 +147,7 @@ func (h *ScheduleHandler) CurrentUserDelete(c *fiber.Ctx) error {
 		})
 	}
 
-	schedule, err := h.scheduleService.DeleteScheduleByUser(uint(id), authUser.ID)
+	schedule, err := h.scheduleService.DeleteByUserId(uint(id), authUser.ID)
 	if err != nil {
 		if errors.Is(err, common.ErrRecordNotFound) {
 			return c.Status(fiber.StatusNotFound).JSON(common.ErrorResponse{

@@ -19,7 +19,7 @@ func NewScheduleService(db *gorm.DB) *ScheduleService {
 	return &ScheduleService{db: db}
 }
 
-func (ss *ScheduleService) CreateSchedule(userId uint, scheduleDto CreateScheduleDto) (*model.Schedule, error) {
+func (ss *ScheduleService) Create(userId uint, scheduleDto CreateScheduleDto) (*model.Schedule, error) {
 	layout := "15:04"
 
 	dtoStartTime, err := time.Parse(layout, scheduleDto.StartTime)
@@ -99,7 +99,7 @@ func (ss *ScheduleService) FindAll(limit, page int, orderBy string) (*AllSchedul
 
 }
 
-func (ss *ScheduleService) FindOneSchedule(id uint) (*model.Schedule, error) {
+func (ss *ScheduleService) FindOne(id uint) (*model.Schedule, error) {
 	schedule := new(model.Schedule)
 	result := ss.db.First(&schedule, id)
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
@@ -110,15 +110,15 @@ func (ss *ScheduleService) FindOneSchedule(id uint) (*model.Schedule, error) {
 }
 
 // there is no need for paginate because employee needs to see all his schedules
-func (ss *ScheduleService) FindSchedulesByEmployee(employeeId uint) ([]model.Schedule, error) {
+func (ss *ScheduleService) FindByUserId(userId uint) ([]model.Schedule, error) {
 	schedules := []model.Schedule{}
-	if result := ss.db.Where("employee_id = ?", employeeId).Order("week_day").Find(&schedules); result.Error != nil {
+	if result := ss.db.Where("employee_id = ?", userId).Order("week_day").Find(&schedules); result.Error != nil {
 		return nil, result.Error
 	}
 	return schedules, nil
 }
 
-func (ss *ScheduleService) DeleteSchedule(id uint) (*model.Schedule, error) {
+func (ss *ScheduleService) Delete(id uint) (*model.Schedule, error) {
 	var schedule model.Schedule
 
 	if result := ss.db.Clauses(clause.Returning{}).Delete(&schedule, id); result.Error != nil {
@@ -130,7 +130,7 @@ func (ss *ScheduleService) DeleteSchedule(id uint) (*model.Schedule, error) {
 	return &schedule, nil
 }
 
-func (ss *ScheduleService) DeleteScheduleByUser(id, userId uint) (*model.Schedule, error) {
+func (ss *ScheduleService) DeleteByUserId(id, userId uint) (*model.Schedule, error) {
 	var schedule model.Schedule
 
 	if result := ss.db.Clauses(clause.Returning{}).Where("employee_id = ? AND id = ?", userId, id).Delete(&schedule); result.Error != nil {

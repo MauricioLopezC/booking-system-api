@@ -28,8 +28,6 @@ func SetupRoutes(
 	authGroup.Post("/login", authH.Login)
 	authGroup.Post("/register", authH.Register)
 
-	//
-
 	//Bookings
 	mybookings := api.Group("/me/bookings")
 	mybookings.Post("/", auth.Protected(), bookingsH.CreateMyBooking)
@@ -47,9 +45,9 @@ func SetupRoutes(
 
 	//Shedules - user
 	userSchedules := api.Group("/me/schedules")
-	userSchedules.Post("/", auth.Protected(), auth.RoleMiddleware("employee, admin"), schedulesH.CreateCurrentUserSchedule)
-	userSchedules.Get("/", auth.Protected(), auth.RoleMiddleware("admin", "employee"), schedulesH.CurrentUserFindAll)
-	userSchedules.Delete("/:id", auth.Protected(), auth.RoleMiddleware("admin", "employee"), schedulesH.CurrentUserDelete)
+	userSchedules.Post("/", auth.Protected(), auth.RoleMiddleware("employee, admin"), schedulesH.CreateMySchedule)
+	userSchedules.Get("/", auth.Protected(), auth.RoleMiddleware("admin", "employee"), schedulesH.FindMySchedules)
+	userSchedules.Delete("/:id", auth.Protected(), auth.RoleMiddleware("admin", "employee"), schedulesH.DeleteMySchedules)
 
 	//available slots
 	api.Get("/available-slots", slotsH.FindAvailableSlots) //Customer find all available slots for employee and service
