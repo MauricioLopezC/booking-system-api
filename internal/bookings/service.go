@@ -65,7 +65,7 @@ func (bs *BookingsService) CreateBooking(bookingDto BookingDto, customerID uint)
 	return &booking, nil
 }
 
-func (bs *BookingsService) FindAllBookings(limit, page int, orderBy string) (*AllBookingsResponse, error) {
+func (bs *BookingsService) FindAll(limit, page int, orderBy string) (*AllBookingsResponse, error) {
 	offset := (page - 1) * limit
 	query := bs.db.Limit(limit).Offset(offset)
 	if orderBy != "" {
@@ -85,7 +85,7 @@ func (bs *BookingsService) FindAllBookings(limit, page int, orderBy string) (*Al
 
 }
 
-func (bs *BookingsService) FindOneBooking(id uint) (*model.Booking, error) {
+func (bs *BookingsService) FindById(id uint) (*model.Booking, error) {
 	booking := new(model.Booking)
 	if restult := bs.db.First(booking, id); restult.Error != nil {
 		if errors.Is(restult.Error, gorm.ErrRecordNotFound) {
@@ -97,7 +97,7 @@ func (bs *BookingsService) FindOneBooking(id uint) (*model.Booking, error) {
 	return booking, nil
 }
 
-func (bs *BookingsService) FindBookingsByUser(limit, page int, orderBy string, userId uint, userRole string) (*AllBookingsResponse, error) {
+func (bs *BookingsService) FindByUserId(limit, page int, orderBy string, userId uint, userRole string) (*AllBookingsResponse, error) {
 	offset := (page - 1) * limit
 
 	query := bs.db.Limit(limit).Offset(offset)
@@ -152,56 +152,4 @@ func (bs *BookingsService) CancelBooking(id int, userId uint, userRole string) (
 	}
 
 	return &booking, nil
-}
-
-// WARNING: check this funtion
-func (bs *BookingsService) Update(bookingID uint) (*model.Booking, error) {
-	//check if booking date is greater than now, and is Before new two weeks
-
-	booking, err := bs.FindOneBooking(bookingID)
-	if err != nil {
-		return nil, fmt.Errorf("%w: %s", common.ErrRecordNotFound, "Booking not found")
-	}
-
-	now := time.Now()
-	if !booking.BookingDate.After(now) {
-		return nil, fmt.Errorf("%w: %s", common.ErrValidation, "Booking datetime must be greater than the current one")
-	}
-
-	if booking.BookingDate.After(now.AddDate(0, 0, 14)) {
-		return nil, fmt.Errorf("%w: %s", common.ErrValidation, "Booking date must no exceed 2 weks")
-	}
-
-	//check if employee has service
-	hasService, err := common.EmployeeHasService(bs.db, booking.EmployeeID, booking.ServiceID)
-	if err != nil {
-		return nil, err
-	}
-
-	if !hasService {
-		return nil, fmt.Errorf("%w: %s", common.ErrConflict, "Service not assigned to employee")
-	}
-
-	availableSlots, err := bs.slotsService.FindAvailableSlots(booking.EmployeeID, booking.ServiceID, booking.BookingDate, booking.BookingDate)
-	if err != nil {
-		return nil, err
-	}
-
-	bookingDateKey := booking.BookingDate.Format("2006-01-02")
-	daySlots, ok := availableSlots[bookingDateKey]
-	if !ok {
-		return nil, fmt.Errorf("%w: %s", common.ErrConflict, "There are no available appointments for the booking date")
-	}
-	if !slices.Contains(daySlots, booking.BookingDate) {
-		return nil, fmt.Errorf("%w: %s", common.ErrConflict, "The booking time does't not match  with any of available slots for the day")
-	}
-
-	if result := bs.db.Save(&booking); result.Error != nil {
-		if errors.Is(result.Error, gorm.ErrDuplicatedKey) {
-			return nil, fmt.Errorf("%w: %s", common.ErrConflict, "The booking has already been reserved!")
-		}
-		return nil, result.Error
-	}
-
-	return booking, nil //booking is a pointer
 }

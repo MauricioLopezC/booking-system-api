@@ -31,14 +31,14 @@ func SetupRoutes(
 	//
 
 	//Bookings
+	mybookings := api.Group("/me/bookings")
+	mybookings.Post("/", auth.Protected(), bookingsH.CreateMyBooking)
+	mybookings.Get("/", auth.Protected(), bookingsH.FindMyBookings)
+	mybookings.Post("/:id/cancel", auth.Protected(), bookingsH.CancelBooking)
+	//Bookings - ADMIN
 	bookings := api.Group("/bookings")
-	bookings.Post("/", auth.Protected(), auth.RoleMiddleware("employee", "admin"), bookingsH.Create)
 	bookings.Get("/", auth.Protected(), auth.RoleMiddleware("admin"), bookingsH.FindAll)
-	bookings.Post("/:id/cancel", auth.Protected(), bookingsH.CancelBooking)
-	//cancel, reasign
-	//Bookings - User
-	userBookings := api.Group("/me/bookings")
-	userBookings.Get("/", auth.Protected(), bookingsH.FindBookingsByUser)
+	bookings.Get("/:id", auth.Protected(), auth.RoleMiddleware("admin"), bookingsH.FindOne)
 
 	//Shedules - ADMIN
 	schedules := api.Group("/schedules")
@@ -64,7 +64,7 @@ func SetupRoutes(
 	//SchedulesEx - ADMIN
 	//SchedulesEx - USER
 	userScheduleEx := api.Group("me/scheduleex")
-	userScheduleEx.Post("/", auth.Protected(), auth.RoleMiddleware("employee", "admin"), schedulesExH.CurrentUserCreate)
-	userScheduleEx.Delete("/:id", auth.Protected(), schedulesExH.CurrentUserDelete)
+	userScheduleEx.Post("/", auth.Protected(), auth.RoleMiddleware("employee", "admin"), schedulesExH.CreateCurrentUserSchedule)
+	userScheduleEx.Delete("/:id", auth.Protected(), schedulesExH.DeleteCurrentUserSchedule)
 
 }

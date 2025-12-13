@@ -18,7 +18,7 @@ func NewBookingsHandler(bookingsSerice *BookingsService) *BookingsHandler {
 	return &BookingsHandler{bookingsService: bookingsSerice}
 }
 
-func (h *BookingsHandler) Create(c *fiber.Ctx) error {
+func (h *BookingsHandler) CreateMyBooking(c *fiber.Ctx) error {
 	bookingDto := new(BookingDto)
 
 	if err := c.BodyParser(bookingDto); err != nil {
@@ -32,11 +32,15 @@ func (h *BookingsHandler) Create(c *fiber.Ctx) error {
 		})
 	}
 
-	user := c.Locals("user").(*jwt.Token)
-	claims := user.Claims.(jwt.MapClaims)
-	userId := uint(claims["user_id"].(float64))
+	authUser, err := utils.GetAuthUser(c)
+	if err != nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(common.ErrorResponse{
+			StatusCode: fiber.StatusUnauthorized,
+			Message:    "Invalid auth token",
+		})
+	}
 
-	newBooking, err := h.bookingsService.CreateBooking(*bookingDto, userId)
+	newBooking, err := h.bookingsService.CreateBooking(*bookingDto, authUser.ID)
 	if err != nil {
 		if errors.Is(err, common.ErrRecordNotFound) {
 			return c.Status(fiber.StatusNotFound).JSON(common.ErrorResponse{
@@ -87,7 +91,7 @@ func (h *BookingsHandler) FindAll(c *fiber.Ctx) error {
 	}
 	orderBy, _ = utils.ParseSortParam(orderBy, allowedFields)
 
-	allBookingsResponse, err := h.bookingsService.FindAllBookings(limit, page, orderBy)
+	allBookingsResponse, err := h.bookingsService.FindAll(limit, page, orderBy)
 	if err != nil {
 		// unexpected error
 		return common.NewInternalServerErrorResponse(c)
@@ -96,6 +100,7 @@ func (h *BookingsHandler) FindAll(c *fiber.Ctx) error {
 	return c.Status(200).JSON(allBookingsResponse)
 }
 
+// ADMIN ONLY
 func (h *BookingsHandler) FindOne(c *fiber.Ctx) error {
 	id, err := c.ParamsInt("id")
 	if err != nil || id <= 0 {
@@ -105,7 +110,7 @@ func (h *BookingsHandler) FindOne(c *fiber.Ctx) error {
 		})
 	}
 
-	createdBooking, err := h.bookingsService.FindOneBooking(uint(id))
+	booking, err := h.bookingsService.FindById(uint(id))
 	if err != nil {
 		if errors.Is(err, common.ErrRecordNotFound) {
 			return c.Status(fiber.StatusNotFound).JSON(common.ErrorResponse{
@@ -116,57 +121,10 @@ func (h *BookingsHandler) FindOne(c *fiber.Ctx) error {
 		// unexpected error
 		return common.NewInternalServerErrorResponse(c)
 	}
-	return c.Status(fiber.StatusCreated).JSON(createdBooking)
+	return c.Status(fiber.StatusCreated).JSON(booking)
 }
 
-// WARNING: check this handler
-func (h *BookingsHandler) Update(c *fiber.Ctx) error {
-	id, err := c.ParamsInt("id")
-	if err != nil || id <= 0 {
-		return c.Status(fiber.StatusBadRequest).JSON(common.ErrorResponse{
-			StatusCode: fiber.StatusBadRequest,
-			Message:    "Numeric string greater than 0 is expected",
-		})
-	}
-
-	bookingDto := new(BookingDto)
-	if err := c.BodyParser(bookingDto); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(common.ErrorResponse{StatusCode: fiber.StatusBadRequest, Message: err.Error()})
-	}
-
-	if err := utils.Validate(bookingDto); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(common.ErrorResponse{
-			StatusCode: fiber.StatusBadRequest,
-			Message:    err.Error(),
-		})
-	}
-
-	updatedBooking, err := h.bookingsService.Update(uint(id))
-
-	if err != nil {
-		if errors.Is(err, common.ErrRecordNotFound) {
-			return c.Status(fiber.StatusNotFound).JSON(common.ErrorResponse{
-				StatusCode: fiber.StatusNotFound,
-				Message:    err.Error(),
-			})
-		}
-		if errors.Is(err, common.ErrConflict) {
-			return c.Status(fiber.StatusConflict).JSON(common.ErrorResponse{
-				StatusCode: fiber.StatusConflict,
-				Message:    err.Error(),
-			})
-		}
-		if errors.Is(err, common.ErrValidation) {
-			return c.Status(fiber.StatusBadRequest).JSON(common.ErrorResponse{
-				StatusCode: fiber.StatusBadRequest,
-				Message:    err.Error(),
-			})
-		}
-	}
-	return c.Status(fiber.StatusOK).JSON(updatedBooking)
-}
-
-func (h *BookingsHandler) FindBookingsByUser(c *fiber.Ctx) error {
+func (h *BookingsHandler) FindMyBookings(c *fiber.Ctx) error {
 	limit := c.QueryInt("limit")
 	if limit <= 0 {
 		return c.Status(fiber.StatusBadRequest).JSON(common.ErrorResponse{
@@ -190,16 +148,15 @@ func (h *BookingsHandler) FindBookingsByUser(c *fiber.Ctx) error {
 	}
 	orderBy, err := utils.ParseSortParam(orderBy, allowedFields)
 
-	//get user data from context
-	userToken, ok1 := c.Locals("user").(*jwt.Token)
-	claims, ok2 := userToken.Claims.(jwt.MapClaims)
-	userId, ok3 := claims["user_id"].(float64)
-	role, ok4 := claims["role"].(string)
-	if !ok1 || !ok2 || !ok3 || !ok4 {
-		return common.NewInternalServerErrorResponse(c)
+	authUser, err := utils.GetAuthUser(c)
+	if err != nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(common.ErrorResponse{
+			StatusCode: fiber.StatusUnauthorized,
+			Message:    "Invalid auth token",
+		})
 	}
 
-	allBookingsResponse, err := h.bookingsService.FindBookingsByUser(limit, page, orderBy, uint(userId), role)
+	allBookingsResponse, err := h.bookingsService.FindByUserId(limit, page, orderBy, authUser.ID, authUser.Role)
 	if err != nil {
 		if errors.Is(err, common.ErrUnauthorized) {
 			return c.Status(fiber.StatusUnauthorized).JSON(common.ErrorResponse{
