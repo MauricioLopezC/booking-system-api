@@ -8,3 +8,9 @@ In order to avoid inconsistencies when creating or updating a booking:
 
 To prevent two or more bookings on the same date time, create an unique index between the following attributes of Booking model: `EmployeeID` and `BookingDate`.
 
+
+
+## Schedule Exceptions Service
+- [ ] Continue implementing routing...
+
+

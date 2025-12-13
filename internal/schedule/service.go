@@ -8,6 +8,7 @@ import (
 	"github.com/MauricioLopezC/ReservationSystem/internal/common"
 	"github.com/MauricioLopezC/ReservationSystem/internal/model"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type ScheduleService struct {
@@ -77,11 +78,11 @@ func (ss *ScheduleService) CreateSchedule(userId uint, scheduleDto CreateSchedul
 	return &newSchedule, nil
 }
 
-func (ss *ScheduleService) FindAllSchedules(limit, page int, orderBy string) (*AllSchedulesResponse, error) {
+func (ss *ScheduleService) FindAll(limit, page int, orderBy string) (*AllSchedulesResponse, error) {
 	offset := (page - 1) * limit
 	query := ss.db.Limit(limit).Offset(offset)
 
-	if orderBy != "" { //if orderBy is not allowed ignore
+	if orderBy != "" {
 		query = query.Order(orderBy)
 	}
 
@@ -120,14 +121,19 @@ func (ss *ScheduleService) FindSchedulesByEmployee(employeeId uint) ([]model.Sch
 func (ss *ScheduleService) DeleteSchedule(id uint) (*model.Schedule, error) {
 	var schedule model.Schedule
 
-	if result := ss.db.First(&schedule); result.Error != nil {
+	if result := ss.db.Clauses(clause.Returning{}).Delete(&schedule, id); result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			return nil, fmt.Errorf("%w: %s", common.ErrRecordNotFound, "schedule")
 		}
 		return nil, result.Error
 	}
+	return &schedule, nil
+}
 
-	if result := ss.db.Delete(&schedule); result.Error != nil {
+func (ss *ScheduleService) DeleteScheduleByUser(id, userId uint) (*model.Schedule, error) {
+	var schedule model.Schedule
+
+	if result := ss.db.Clauses(clause.Returning{}).Where("employee_id = ? AND id = ?", userId, id).Delete(&schedule); result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			return nil, fmt.Errorf("%w: %s", common.ErrRecordNotFound, "schedule")
 		}

@@ -154,6 +154,7 @@ func (bs *BookingsService) CancelBooking(id int, userId uint, userRole string) (
 	return &booking, nil
 }
 
+// WARNING: check this funtion
 func (bs *BookingsService) Update(bookingID uint) (*model.Booking, error) {
 	//check if booking date is greater than now, and is Before new two weeks
 

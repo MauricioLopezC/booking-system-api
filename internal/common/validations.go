@@ -14,17 +14,6 @@ func EmployeeHasService(db *gorm.DB, employeeId, serviceId uint) (bool, error) {
 	return count > 0, nil
 }
 
-func EmployeeHasSchedule(db *gorm.DB, employeeId, scheduleId uint) (bool, error) {
-	var count int64
-	result := db.Table("schedules").Where("id = ? AND employee_id = ?", scheduleId, employeeId).Count(&count)
-
-	if result.Error != nil {
-		return false, result.Error
-	}
-
-	return count > 0, nil
-}
-
 func UserHasBooking(db *gorm.DB, userId, bookingId uint, userRole string) (bool, error) {
 	var count int64
 

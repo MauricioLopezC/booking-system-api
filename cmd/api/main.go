@@ -6,6 +6,7 @@ import (
 	"github.com/MauricioLopezC/ReservationSystem/internal/database"
 	"github.com/MauricioLopezC/ReservationSystem/internal/model"
 	"github.com/MauricioLopezC/ReservationSystem/internal/schedule"
+	scheduleexceptions "github.com/MauricioLopezC/ReservationSystem/internal/schedule_exceptions"
 	"github.com/MauricioLopezC/ReservationSystem/internal/services"
 	"github.com/MauricioLopezC/ReservationSystem/internal/slots"
 	"github.com/gofiber/fiber/v2"
@@ -39,7 +40,10 @@ func main() {
 	authService := auth.NewAuthService(database.DB.Db)
 	authHandler := auth.NewAuthHandler(authService)
 
-	SetupRoutes(app, scheduleHandler, bookingsHandler, slotsHandler, servicesHandler, authHandler)
+	scheduleExService := scheduleexceptions.NewScheduleExService(database.DB.Db)
+	scheduleExHandler := scheduleexceptions.NewScheduleExHandler(scheduleExService)
+
+	SetupRoutes(app, scheduleHandler, bookingsHandler, slotsHandler, servicesHandler, authHandler, scheduleExHandler)
 
 	app.Listen(":3000")
 }

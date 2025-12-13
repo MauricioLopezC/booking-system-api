@@ -2,14 +2,10 @@ package schedule
 
 import (
 	"errors"
-	"strconv"
 
 	"github.com/MauricioLopezC/ReservationSystem/internal/common"
-	"github.com/MauricioLopezC/ReservationSystem/internal/database"
-	"github.com/MauricioLopezC/ReservationSystem/internal/model"
 	"github.com/MauricioLopezC/ReservationSystem/internal/utils"
 	"github.com/gofiber/fiber/v2"
-	"github.com/golang-jwt/jwt/v5"
 )
 
 type ScheduleHandler struct {
@@ -21,7 +17,7 @@ func NewScheduleHandler(scheduleService *ScheduleService) *ScheduleHandler {
 
 }
 
-func (h *ScheduleHandler) CreateSchedule(c *fiber.Ctx) error {
+func (h *ScheduleHandler) CreateCurrentUserSchedule(c *fiber.Ctx) error {
 	scheduleDto := new(CreateScheduleDto)
 
 	if err := c.BodyParser(scheduleDto); err != nil {
@@ -35,12 +31,15 @@ func (h *ScheduleHandler) CreateSchedule(c *fiber.Ctx) error {
 		})
 	}
 
-	//get user info
-	user := c.Locals("user").(*jwt.Token)
-	claims := user.Claims.(jwt.MapClaims)
-	userId := uint(claims["user_id"].(float64))
+	authUser, err := utils.GetAuthUser(c)
+	if err != nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(common.ErrorResponse{
+			StatusCode: fiber.StatusUnauthorized,
+			Message:    "Invalid auth token",
+		})
+	}
 
-	schedule, err := h.scheduleService.CreateSchedule(userId, *scheduleDto)
+	schedule, err := h.scheduleService.CreateSchedule(authUser.ID, *scheduleDto)
 	if err != nil {
 		if errors.Is(err, common.ErrValidation) {
 			return c.Status(fiber.StatusBadRequest).JSON(common.ErrorResponse{
@@ -61,17 +60,18 @@ func (h *ScheduleHandler) CreateSchedule(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(schedule)
 }
 
-func (h *ScheduleHandler) FindAllSchedules(c *fiber.Ctx) error {
-	limit, err := strconv.Atoi(c.Query("limit", "10"))
-	if err != nil || limit <= 0 {
+// admin only
+func (h *ScheduleHandler) FindAll(c *fiber.Ctx) error {
+	limit := c.QueryInt("limit")
+	if limit <= 0 {
 		return c.Status(fiber.ErrBadRequest.Code).JSON(common.ErrorResponse{
 			StatusCode: fiber.StatusBadRequest,
 			Message:    "Limit muste be an integer number and gt 0",
 		})
 	}
 
-	page, err := strconv.Atoi(c.Query("page", "1"))
-	if err != nil || page <= 0 {
+	page := c.QueryInt("page")
+	if page <= 0 {
 		return c.Status(fiber.ErrBadRequest.Code).JSON(common.ErrorResponse{
 			StatusCode: fiber.StatusBadRequest,
 			Message:    "page must be an integer number and gt 0",
@@ -83,14 +83,14 @@ func (h *ScheduleHandler) FindAllSchedules(c *fiber.Ctx) error {
 		"updated_at": true,
 		"created_at": true,
 	}
-	orderBy, err = utils.ParseSortParam(orderBy, allowedFields)
+	orderBy, _ = utils.ParseSortParam(orderBy, allowedFields)
 
-	allSchedueles, err := h.scheduleService.FindAllSchedules(limit, page, orderBy)
+	allSchedueles, _ := h.scheduleService.FindAll(limit, page, orderBy)
 	return c.Status(fiber.StatusOK).JSON(allSchedueles)
 }
 
-func (h *ScheduleHandler) FindOneSchedule(c *fiber.Ctx) error {
-	id, err := strconv.Atoi(c.Params("id"))
+func (h *ScheduleHandler) FindOne(c *fiber.Ctx) error {
+	id, err := c.ParamsInt("id")
 	if err != nil || id <= 0 {
 		return c.Status(fiber.StatusBadRequest).JSON(common.ErrorResponse{
 			StatusCode: fiber.StatusBadRequest,
@@ -111,23 +111,18 @@ func (h *ScheduleHandler) FindOneSchedule(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(schedule)
 }
 
-// Employee gets his weekly schedule.
 // Use in endpoint: GET /me/schedules
 // there is no need for paginate because employee needs to see all his schedules
-func (h *ScheduleHandler) FindSchedulesByEmployee(c *fiber.Ctx) error {
-	userToken := c.Locals("user").(*jwt.Token)
-	claims := userToken.Claims.(jwt.MapClaims)
-	userId := uint(claims["user_id"].(float64))
-	role := claims["role"].(string)
-
-	if role == model.RoleCustomer.String() {
+func (h *ScheduleHandler) CurrentUserFindAll(c *fiber.Ctx) error {
+	authUser, err := utils.GetAuthUser(c)
+	if err != nil {
 		return c.Status(fiber.StatusUnauthorized).JSON(common.ErrorResponse{
 			StatusCode: fiber.StatusUnauthorized,
-			Message:    "Access denied! only employees can se his schedules",
+			Message:    "Invalid auth token",
 		})
 	}
 
-	schedules, err := h.scheduleService.FindSchedulesByEmployee(userId)
+	schedules, err := h.scheduleService.FindSchedulesByEmployee(uint(authUser.ID))
 	if err != nil {
 		return common.NewInternalServerErrorResponse(c)
 	}
@@ -135,8 +130,8 @@ func (h *ScheduleHandler) FindSchedulesByEmployee(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(schedules)
 }
 
-func (h *ScheduleHandler) DeleteSchedule(c *fiber.Ctx) error {
-	id, err := strconv.Atoi(c.Params("id"))
+func (h *ScheduleHandler) CurrentUserDelete(c *fiber.Ctx) error {
+	id, err := c.ParamsInt("id")
 	if err != nil || id <= 0 {
 		return c.Status(fiber.StatusBadRequest).JSON(common.ErrorResponse{
 			StatusCode: fiber.StatusBadRequest,
@@ -144,22 +139,15 @@ func (h *ScheduleHandler) DeleteSchedule(c *fiber.Ctx) error {
 		})
 	}
 
-	userToken := c.Locals("user").(*jwt.Token)
-	claims := userToken.Claims.(jwt.MapClaims)
-	userId := uint(claims["user_id"].(float64))
-
-	hasSchedule, err := common.EmployeeHasSchedule(database.DB.Db, userId, uint(id))
+	authUser, err := utils.GetAuthUser(c)
 	if err != nil {
-		return common.NewInternalServerErrorResponse(c)
-	}
-	if !hasSchedule {
 		return c.Status(fiber.StatusUnauthorized).JSON(common.ErrorResponse{
 			StatusCode: fiber.StatusUnauthorized,
-			Message:    "Access denied! you can only delete your schedules!",
+			Message:    "Invalid auth token",
 		})
 	}
 
-	schedule, err := h.scheduleService.DeleteSchedule(uint(id))
+	schedule, err := h.scheduleService.DeleteScheduleByUser(uint(id), authUser.ID)
 	if err != nil {
 		if errors.Is(err, common.ErrRecordNotFound) {
 			return c.Status(fiber.StatusNotFound).JSON(common.ErrorResponse{

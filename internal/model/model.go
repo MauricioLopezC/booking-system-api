@@ -56,7 +56,7 @@ type Schedule struct {
 // Used for schedule exceptions
 type ScheduleOverride struct {
 	gorm.Model
-	EmployeeID  uint
+	EmployeeID  uint      `gorm:"not null"`
 	Date        time.Time `gorm:"not null"`
 	Reason      string    `gorm:"not null"`
 	AllDay      bool      `gorm:"not null;default:false"`
