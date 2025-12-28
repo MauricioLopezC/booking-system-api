@@ -126,7 +126,7 @@ func (ss *ScheduleExService) FindAll(limit, page int, orderBy string) (*AllSched
 	}, nil
 }
 
-func (ss *ScheduleExService) FindAllByUSer(limit, page int, orderBy string, userId uint) (*AllSchedulesResponse, error) {
+func (ss *ScheduleExService) FindByUserId(limit, page int, orderBy string, userId uint) (*AllSchedulesResponse, error) {
 	offset := (page - 1) * limit
 	query := ss.db.Limit(limit).Offset(offset)
 
@@ -146,7 +146,7 @@ func (ss *ScheduleExService) FindAllByUSer(limit, page int, orderBy string, user
 	}, nil
 }
 
-func (ss *ScheduleExService) DeleteByUser(id, employeeId uint) (*model.ScheduleOverride, error) {
+func (ss *ScheduleExService) DeleteByUserId(id, employeeId uint) (*model.ScheduleOverride, error) {
 	var deletedScheduleEx model.ScheduleOverride
 
 	if result := ss.db.Clauses(clause.Returning{}).Where("id = ? AND employee_id = ?", id, employeeId).Delete(&deletedScheduleEx); result.Error != nil {

@@ -44,10 +44,10 @@ func SetupRoutes(
 	schedules.Get("/:id", auth.Protected(), auth.RoleMiddleware("admin"), schedulesH.FindOne)
 
 	//Shedules - user
-	userSchedules := api.Group("/me/schedules")
-	userSchedules.Post("/", auth.Protected(), auth.RoleMiddleware("employee, admin"), schedulesH.CreateMySchedule)
-	userSchedules.Get("/", auth.Protected(), auth.RoleMiddleware("admin", "employee"), schedulesH.FindMySchedules)
-	userSchedules.Delete("/:id", auth.Protected(), auth.RoleMiddleware("admin", "employee"), schedulesH.DeleteMySchedules)
+	mySchedules := api.Group("/me/schedules")
+	mySchedules.Post("/", auth.Protected(), auth.RoleMiddleware("employee, admin"), schedulesH.CreateMySchedule)
+	mySchedules.Get("/", auth.Protected(), auth.RoleMiddleware("admin", "employee"), schedulesH.FindMySchedules)
+	mySchedules.Delete("/:id", auth.Protected(), auth.RoleMiddleware("admin", "employee"), schedulesH.DeleteMySchedules)
 
 	//available slots
 	api.Get("/available-slots", slotsH.FindAvailableSlots) //Customer find all available slots for employee and service
@@ -59,10 +59,9 @@ func SetupRoutes(
 	services.Patch("/:id", auth.Protected(), auth.RoleMiddleware("admin", "employee"), servicesH.Update)
 	services.Delete("/:id", auth.Protected(), auth.RoleMiddleware("admin", "employee"), servicesH.Delete)
 
-	//SchedulesEx - ADMIN
 	//SchedulesEx - USER
-	userScheduleEx := api.Group("me/scheduleex")
-	userScheduleEx.Post("/", auth.Protected(), auth.RoleMiddleware("employee", "admin"), schedulesExH.CreateCurrentUserSchedule)
-	userScheduleEx.Delete("/:id", auth.Protected(), schedulesExH.DeleteCurrentUserSchedule)
+	myScheduleEx := api.Group("me/scheduleex")
+	myScheduleEx.Post("/", auth.Protected(), auth.RoleMiddleware("employee", "admin"), schedulesExH.CreateMyScheduleEx)
+	myScheduleEx.Delete("/:id", auth.Protected(), schedulesExH.DeleteMyScheduleEx)
 
 }

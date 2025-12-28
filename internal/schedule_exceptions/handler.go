@@ -16,7 +16,7 @@ func NewScheduleExHandler(ss *ScheduleExService) *ScheduleExHandler {
 	return &ScheduleExHandler{scheduleExService: ss}
 }
 
-func (h *ScheduleExHandler) CreateCurrentUserSchedule(c *fiber.Ctx) error {
+func (h *ScheduleExHandler) CreateMyScheduleEx(c *fiber.Ctx) error {
 	scheduleDto := new(CreateScheduleExDto)
 
 	if err := c.BodyParser(scheduleDto); err != nil {
@@ -88,7 +88,7 @@ func (h *ScheduleExHandler) FindAll(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(allSchedueles)
 }
 
-func (h *ScheduleExHandler) FindAllCurrentUserSchedules(c *fiber.Ctx) error {
+func (h *ScheduleExHandler) FindMyScheduleExs(c *fiber.Ctx) error {
 	limit := c.QueryInt("limit")
 	if limit <= 0 {
 		return c.Status(fiber.ErrBadRequest.Code).JSON(common.ErrorResponse{
@@ -120,11 +120,11 @@ func (h *ScheduleExHandler) FindAllCurrentUserSchedules(c *fiber.Ctx) error {
 		})
 	}
 
-	schedules, _ := h.scheduleExService.FindAllByUSer(limit, page, orderBy, authUser.ID)
+	schedules, _ := h.scheduleExService.FindByUserId(limit, page, orderBy, authUser.ID)
 	return c.Status(fiber.StatusOK).JSON(schedules)
 }
 
-func (h *ScheduleExHandler) DeleteCurrentUserSchedule(c *fiber.Ctx) error {
+func (h *ScheduleExHandler) DeleteMyScheduleEx(c *fiber.Ctx) error {
 	id, _ := c.ParamsInt("id")
 	if id <= 0 {
 		return c.Status(fiber.StatusBadRequest).JSON(common.ErrorResponse{
@@ -141,7 +141,7 @@ func (h *ScheduleExHandler) DeleteCurrentUserSchedule(c *fiber.Ctx) error {
 		})
 	}
 
-	deletedScheduleEx, err := h.scheduleExService.DeleteByUser(uint(id), authUser.ID)
+	deletedScheduleEx, err := h.scheduleExService.DeleteByUserId(uint(id), authUser.ID)
 	if err != nil {
 		if errors.Is(err, common.ErrRecordNotFound) {
 			return c.Status(fiber.StatusNotFound).JSON(common.ErrorResponse{
