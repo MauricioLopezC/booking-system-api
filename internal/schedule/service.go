@@ -22,15 +22,18 @@ func NewScheduleService(db *gorm.DB) *ScheduleService {
 func (ss *ScheduleService) Create(userId uint, scheduleDto CreateScheduleDto) (*model.Schedule, error) {
 	layout := "15:04"
 
-	dtoStartTime, err := time.Parse(layout, scheduleDto.StartTime)
+	dtoStartTime, err := time.ParseInLocation(layout, scheduleDto.StartTime, time.Local)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %s", common.ErrValidation, "start time must be in HH:MM format")
 	}
 
-	dtoEndTime, err := time.Parse(layout, scheduleDto.EndTime)
+	dtoEndTime, err := time.ParseInLocation(layout, scheduleDto.EndTime, time.Local)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %s", common.ErrValidation, "start time must be in HH:MM format")
 	}
+
+	fmt.Println("DATA")
+	fmt.Println(dtoEndTime, dtoStartTime)
 
 	if !dtoStartTime.Before(dtoEndTime) {
 		return nil, fmt.Errorf("%w: %s", common.ErrValidation, "end time must be greater than the start time")
@@ -39,24 +42,9 @@ func (ss *ScheduleService) Create(userId uint, scheduleDto CreateScheduleDto) (*
 	schedulesFound := []model.Schedule{}
 	ss.db.Where("employee_id = ? AND week_day = ?", userId, scheduleDto.WeekDay).Find(&schedulesFound)
 
-	hasOverlap := false
-	matchIndex := -1
-	for i, schedule := range schedulesFound {
-		existingStartTime := time.Date(0, 0, 0, schedule.StartTime.Hour(), schedule.StartTime.Minute(), 0, 0, time.Local)
-		existingEndTime := time.Date(0, 0, 0, schedule.EndTime.Hour(), schedule.EndTime.Minute(), 0, 0, time.Local)
-		//Note that we already verified that dtoStartTime < dtoEndTime
-		if !(dtoEndTime.Before(existingStartTime) ||
-			dtoStartTime.After(existingEndTime) ||
-			dtoEndTime.Equal(existingStartTime) ||
-			dtoStartTime.Equal(existingEndTime)) {
-			hasOverlap = true
-			matchIndex = i
-			break
-		}
-	}
+	hasOverlap, matchSchedule := hasScheduleOverlap(dtoStartTime, dtoEndTime, schedulesFound)
 
 	if hasOverlap {
-		matchSchedule := schedulesFound[matchIndex]
 		errMessage := fmt.Sprintf("time block [%s , %s] must be in an interval other than [%s , %s]",
 			scheduleDto.StartTime,
 			scheduleDto.EndTime,
@@ -76,6 +64,32 @@ func (ss *ScheduleService) Create(userId uint, scheduleDto CreateScheduleDto) (*
 
 	ss.db.Create(&newSchedule)
 	return &newSchedule, nil
+}
+
+func hasScheduleOverlap(dtoStart, dtoEnd time.Time, existing []model.Schedule) (bool, *model.Schedule) {
+	for i, schedule := range existing {
+		existingStart := time.Date(
+			0, 1, 1,
+			schedule.StartTime.Hour(),
+			schedule.StartTime.Minute(),
+			0, 0,
+			time.Local,
+		)
+
+		existingEnd := time.Date(
+			0, 1, 1,
+			schedule.EndTime.Hour(),
+			schedule.EndTime.Minute(),
+			0, 0,
+			time.Local,
+		)
+
+		// OVERLAP
+		if dtoStart.Before(existingEnd) && dtoEnd.After(existingStart) {
+			return true, &existing[i]
+		}
+	}
+	return false, nil
 }
 
 func (ss *ScheduleService) FindAll(limit, page int, orderBy string) (*AllSchedulesResponse, error) {

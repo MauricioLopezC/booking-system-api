@@ -45,7 +45,7 @@ func SetupRoutes(
 
 	//Shedules - user
 	mySchedules := api.Group("/me/schedules")
-	mySchedules.Post("/", auth.Protected(), auth.RoleMiddleware("employee, admin"), schedulesH.CreateMySchedule)
+	mySchedules.Post("/", auth.Protected(), auth.RoleMiddleware("employee", "admin"), schedulesH.CreateMySchedule)
 	mySchedules.Get("/", auth.Protected(), auth.RoleMiddleware("admin", "employee"), schedulesH.FindMySchedules)
 	mySchedules.Delete("/:id", auth.Protected(), auth.RoleMiddleware("admin", "employee"), schedulesH.DeleteMySchedules)
 

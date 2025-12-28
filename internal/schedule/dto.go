@@ -2,6 +2,6 @@ package schedule
 
 type CreateScheduleDto struct {
 	WeekDay   int    `json:"weekday" validate:"gte=0,lte=6"`
-	StartTime string `json:"startTime" validate:"required,datetime=15:04:05"`
-	EndTime   string `json:"endTime" validate:"required,datetime=15:04:05"`
+	StartTime string `json:"startTime" validate:"required,datetime=15:04"`
+	EndTime   string `json:"endTime" validate:"required,datetime=15:04"`
 }
