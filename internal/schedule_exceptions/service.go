@@ -28,7 +28,7 @@ func (ss *ScheduleExService) Create(userId uint, scheduleExDto CreateScheduleExD
 		return nil, fmt.Errorf("%w: %s", common.ErrConflict, "there is already an exception for this date")
 	}
 
-	if scheduleExDto.AllDay {
+	if scheduleExDto.AllDay && len(schedulesFound) == 0 {
 		scheduleEx := model.ScheduleOverride{
 			EmployeeID: userId,
 			Date:       dtoDate,
@@ -47,9 +47,8 @@ func (ss *ScheduleExService) Create(userId uint, scheduleExDto CreateScheduleExD
 		return nil, fmt.Errorf("%w: %s", common.ErrValidation, "startTime and endTime are required")
 	}
 
-	layout := "15:04"
-	dtoStartTime, _ := time.Parse(time.TimeOnly, *scheduleExDto.StartTime)
-	dtoEndTime, _ := time.Parse(time.TimeOnly, *scheduleExDto.EndTime)
+	dtoStartTime, _ := time.ParseInLocation(time.TimeOnly, *scheduleExDto.StartTime, time.Local)
+	dtoEndTime, _ := time.ParseInLocation(time.TimeOnly, *scheduleExDto.EndTime, time.Local)
 
 	fmt.Println(dtoStartTime, dtoEndTime)
 	//validations
@@ -63,30 +62,21 @@ func (ss *ScheduleExService) Create(userId uint, scheduleExDto CreateScheduleExD
 		return nil, fmt.Errorf("%w: %s", common.ErrValidation, "exception date must be greater than current date")
 	}
 
-	hasOverlap := false
-	matchIndex := -1
-
-	for i, s := range schedulesFound {
-		existingStartTime := time.Date(0, 0, 0, s.StartTime.Hour(), s.StartTime.Minute(), 0, 0, time.Local)
-		existingEndTime := time.Date(0, 0, 0, s.EndTime.Hour(), s.EndTime.Minute(), 0, 0, time.Local)
-		//Note that we already verified that dtoStartTime < dtoEndTime
-		if !(dtoEndTime.Before(existingStartTime) ||
-			dtoStartTime.After(existingEndTime)) {
-			hasOverlap = true
-			matchIndex = i
-			break
-		}
-	}
+	hasOverlap, matchSchedule := hasScheduleExceptionOverlap(dtoStartTime, dtoEndTime, schedulesFound)
 
 	if hasOverlap {
-		matchSchedule := schedulesFound[matchIndex]
-		errMessage := fmt.Sprintf("time block [%s , %s] must be in an interval other than [%s , %s]",
-			*scheduleExDto.StartTime,
-			*scheduleExDto.EndTime,
-			matchSchedule.StartTime.Local().Format(layout),
-			matchSchedule.EndTime.Local().Format(layout),
-		)
-
+		layout := "15:04"
+		var errMessage string
+		if matchSchedule.AllDay {
+			errMessage = "An all-day exception already exists for this date"
+		} else {
+			errMessage = fmt.Sprintf("time block [%s , %s] overlaps with another exception [%s , %s]",
+				*scheduleExDto.StartTime,
+				*scheduleExDto.EndTime,
+				matchSchedule.StartTime.Local().Format(layout),
+				matchSchedule.EndTime.Local().Format(layout),
+			)
+		}
 		return nil, fmt.Errorf("%w: %s", common.ErrConflict, errMessage)
 	}
 
@@ -104,6 +94,39 @@ func (ss *ScheduleExService) Create(userId uint, scheduleExDto CreateScheduleExD
 	}
 
 	return &scheduleEx, nil
+}
+
+func hasScheduleExceptionOverlap(dtoStart, dtoEnd time.Time, existing []model.ScheduleOverride) (bool, *model.ScheduleOverride) {
+	for i, schedule := range existing {
+		if schedule.AllDay {
+			return true, &existing[i]
+		}
+
+		if schedule.StartTime == nil || schedule.EndTime == nil {
+			continue
+		}
+
+		existingStart := time.Date(
+			0, 1, 1,
+			schedule.StartTime.Hour(),
+			schedule.StartTime.Minute(),
+			0, 0,
+			time.Local,
+		)
+
+		existingEnd := time.Date(
+			0, 1, 1,
+			schedule.EndTime.Hour(),
+			schedule.EndTime.Minute(),
+			0, 0,
+			time.Local,
+		)
+
+		if dtoStart.Before(existingEnd) && dtoEnd.After(existingStart) {
+			return true, &existing[i]
+		}
+	}
+	return false, nil
 }
 
 func (ss *ScheduleExService) FindAll(limit, page int, orderBy string) (*AllSchedulesResponse, error) {
