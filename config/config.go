@@ -8,7 +8,6 @@ import (
 )
 
 func Config(key string) string {
-	//TODO: return an error instead of log.fatal
 	err := godotenv.Load()
 	if err != nil {
 		log.Fatal("Error loading .env file")
