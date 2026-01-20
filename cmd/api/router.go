@@ -22,52 +22,57 @@ func SetupRoutes(
 	schedulesExH *scheduleexceptions.ScheduleExHandler,
 	usersH *user.UsersHandler,
 ) {
-	//middleware
+	// Middleware
 	api := app.Group("/api", logger.New())
 
-	//auth
+	// Auth
 	authGroup := api.Group("/auth")
 	authGroup.Post("/login", authH.Login)
 	authGroup.Post("/register", authH.Register)
 
-	//Bookings
-	mybookings := api.Group("/me/bookings")
-	mybookings.Post("/", auth.Protected(), bookingsH.CreateMyBooking)
-	mybookings.Get("/", auth.Protected(), bookingsH.FindMyBookings)
-	mybookings.Post("/:id/cancel", auth.Protected(), bookingsH.CancelBooking)
-	//Bookings - ADMIN
-	bookings := api.Group("/bookings")
-	bookings.Get("/", auth.Protected(), auth.RoleMiddleware("admin"), bookingsH.FindAll)
-	bookings.Get("/:id", auth.Protected(), auth.RoleMiddleware("admin"), bookingsH.FindOne)
+	// --- ME (User Context) ---
+	me := api.Group("/me", auth.Protected())
 
-	//Shedules - ADMIN
-	schedules := api.Group("/schedules")
-	schedules.Get("/", auth.Protected(), auth.RoleMiddleware("admin"), schedulesH.FindAll) //Admin get all employee schedules
-	schedules.Get("/:id", auth.Protected(), auth.RoleMiddleware("admin"), schedulesH.FindOne)
+	// Me - Bookings
+	me.Post("/bookings", bookingsH.CreateMyBooking)
+	me.Get("/bookings", bookingsH.FindMyBookings)
+	me.Post("/bookings/:id/cancel", bookingsH.CancelBooking)
 
-	//Shedules - user
-	mySchedules := api.Group("/me/schedules")
-	mySchedules.Post("/", auth.Protected(), auth.RoleMiddleware("employee", "admin"), schedulesH.CreateMySchedule)
-	mySchedules.Get("/", auth.Protected(), auth.RoleMiddleware("admin", "employee"), schedulesH.FindMySchedules)
-	mySchedules.Delete("/:id", auth.Protected(), auth.RoleMiddleware("admin", "employee"), schedulesH.DeleteMySchedules)
+	// Me - Schedules
+	me.Post("/schedules", auth.RoleMiddleware("employee", "admin"), schedulesH.CreateMySchedule)
+	me.Get("/schedules", auth.RoleMiddleware("admin", "employee"), schedulesH.FindMySchedules)
+	me.Delete("/schedules/:id", auth.RoleMiddleware("admin", "employee"), schedulesH.DeleteMySchedules)
 
-	//available slots
-	api.Get("/available-slots", slotsH.FindAvailableSlots) //Customer find all available slots for employee and service
+	// Me - Schedule Exceptions
+	me.Post("/schedule-exceptions", auth.RoleMiddleware("employee", "admin"), schedulesExH.CreateMyScheduleEx)
+	me.Delete("/schedule-exceptions/:id", auth.RoleMiddleware("employee", "admin"), schedulesExH.DeleteMyScheduleEx)
 
-	//Services
+	// Me - Services
+	me.Post("/services", auth.RoleMiddleware("admin", "employee"), usersH.AssignServiceToMe)
+
+	// --- PUBLIC / SHARED ---
+
+	// Available Slots
+	api.Get("/available-slots", slotsH.FindAvailableSlots)
+
+	// Services
 	services := api.Group("/services")
-	services.Post("/", auth.Protected(), auth.RoleMiddleware("admin", "employee"), servicesH.Create)
 	services.Get("/", servicesH.FindAll)
-	services.Patch("/:id", auth.Protected(), auth.RoleMiddleware("admin", "employee"), servicesH.Update)
-	services.Delete("/:id", auth.Protected(), auth.RoleMiddleware("admin", "employee"), servicesH.Delete)
+	// Services - Protected
+	servicesProtected := services.Group("/", auth.Protected(), auth.RoleMiddleware("admin", "employee"))
+	servicesProtected.Post("/", servicesH.Create)
+	servicesProtected.Patch("/:id", servicesH.Update)
+	servicesProtected.Delete("/:id", servicesH.Delete)
 
-	//SchedulesEx - USER
-	myScheduleEx := api.Group("me/scheduleex")
-	myScheduleEx.Post("/", auth.Protected(), auth.RoleMiddleware("employee", "admin"), schedulesExH.CreateMyScheduleEx)
-	myScheduleEx.Delete("/:id", auth.Protected(), schedulesExH.DeleteMyScheduleEx)
+	// --- ADMIN ---
 
-	// User Services
-	userSevices := api.Group("me/services")
-	userSevices.Post("/", auth.Protected(), auth.RoleMiddleware("amdin", "employee"), usersH.AssignServiceToMe)
+	// Bookings - Admin
+	bookings := api.Group("/bookings", auth.Protected(), auth.RoleMiddleware("admin"))
+	bookings.Get("/", bookingsH.FindAll)
+	bookings.Get("/:id", bookingsH.FindOne)
 
+	// Schedules - Admin
+	schedules := api.Group("/schedules", auth.Protected(), auth.RoleMiddleware("admin"))
+	schedules.Get("/", schedulesH.FindAll)
+	schedules.Get("/:id", schedulesH.FindOne)
 }
