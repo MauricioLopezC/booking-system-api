@@ -7,6 +7,7 @@ import (
 	scheduleexceptions "github.com/MauricioLopezC/ReservationSystem/internal/schedule_exceptions"
 	"github.com/MauricioLopezC/ReservationSystem/internal/services"
 	"github.com/MauricioLopezC/ReservationSystem/internal/slots"
+	"github.com/MauricioLopezC/ReservationSystem/internal/user"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 )
@@ -19,6 +20,7 @@ func SetupRoutes(
 	servicesH *services.ServicesHandler,
 	authH *auth.AuthHandler,
 	schedulesExH *scheduleexceptions.ScheduleExHandler,
+	usersH *user.UsersHandler,
 ) {
 	//middleware
 	api := app.Group("/api", logger.New())
@@ -63,5 +65,9 @@ func SetupRoutes(
 	myScheduleEx := api.Group("me/scheduleex")
 	myScheduleEx.Post("/", auth.Protected(), auth.RoleMiddleware("employee", "admin"), schedulesExH.CreateMyScheduleEx)
 	myScheduleEx.Delete("/:id", auth.Protected(), schedulesExH.DeleteMyScheduleEx)
+
+	// User Services
+	userSevices := api.Group("me/services")
+	userSevices.Post("/", auth.Protected(), auth.RoleMiddleware("amdin", "employee"), usersH.AssignServiceToMe)
 
 }

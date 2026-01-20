@@ -12,7 +12,7 @@ type User struct {
 	Name     string `gorm:"uniqueIndex;not null" json:"name"`
 	Email    string `gorm:"uniqueIndex;not null" json:"email"`
 	Phone    string `gorm:"uniqueIndex;not null" json:"phone"`
-	Password string `gorm:"not null" json:"password"`
+	Password string `gorm:"not null" json:"-"`
 	Role     string `gorm:"not null;default:customer" json:"role"`
 
 	Services []*Service `gorm:"many2many:user_services"`

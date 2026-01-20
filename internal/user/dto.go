@@ -31,3 +31,7 @@ type UserResponse struct {
 	Email    string `json:"email"`
 	Role     string `json:"role"`
 }
+
+type ConnectServicesToUserDto struct {
+	ServiceIDs []uint `json:"serviceIds" validate:"required,min=1,max=20"`
+}

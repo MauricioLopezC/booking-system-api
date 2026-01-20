@@ -151,3 +151,40 @@ func (h *UsersHandler) Delete(c *fiber.Ctx) error {
 
 	return c.Status(fiber.StatusOK).JSON(userResponse)
 }
+
+func (h *UsersHandler) AssignServiceToMe(c *fiber.Ctx) error {
+	var body ConnectServicesToUserDto
+	if err := c.BodyParser(&body); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(common.ErrorResponse{
+			StatusCode: fiber.StatusBadRequest,
+			Message:    err.Error(),
+		})
+	}
+
+	authUser, err := utils.GetAuthUser(c)
+	if err != nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(common.ErrorResponse{
+			StatusCode: fiber.StatusUnauthorized,
+			Message:    "Invalid auth token",
+		})
+	}
+
+	user, err := h.usersService.AssignServicesToUser(authUser.ID, body.ServiceIDs)
+	if err != nil {
+		if errors.Is(err, common.ErrRecordNotFound) {
+			return c.Status(fiber.StatusNotFound).JSON(common.ErrorResponse{
+				StatusCode: fiber.StatusNotFound,
+				Message:    err.Error(),
+			})
+		}
+		if errors.Is(err, common.ErrConflict) {
+			return c.Status(fiber.StatusConflict).JSON(common.ErrorResponse{
+				StatusCode: fiber.StatusConflict,
+				Message:    err.Error(),
+			})
+		}
+		return common.NewInternalServerErrorResponse(c)
+	}
+
+	return c.Status(fiber.StatusCreated).JSON(user)
+}

@@ -9,6 +9,7 @@ import (
 	scheduleexceptions "github.com/MauricioLopezC/ReservationSystem/internal/schedule_exceptions"
 	"github.com/MauricioLopezC/ReservationSystem/internal/services"
 	"github.com/MauricioLopezC/ReservationSystem/internal/slots"
+	"github.com/MauricioLopezC/ReservationSystem/internal/user"
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -43,7 +44,19 @@ func main() {
 	scheduleExService := scheduleexceptions.NewScheduleExService(database.DB.Db)
 	scheduleExHandler := scheduleexceptions.NewScheduleExHandler(scheduleExService)
 
-	SetupRoutes(app, scheduleHandler, bookingsHandler, slotsHandler, servicesHandler, authHandler, scheduleExHandler)
+	usersService := user.NewUsersService(database.DB.Db)
+	usersHandler := user.NewUsersHandler(usersService)
+
+	SetupRoutes(
+		app,
+		scheduleHandler,
+		bookingsHandler,
+		slotsHandler,
+		servicesHandler,
+		authHandler,
+		scheduleExHandler,
+		usersHandler,
+	)
 
 	app.Listen(":3000")
 }

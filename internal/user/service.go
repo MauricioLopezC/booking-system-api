@@ -139,7 +139,7 @@ func (us *UsersService) AssignServicesToUser(userID uint, ServiceIDs []uint) (*m
 		return nil, fmt.Errorf("%w: %s", common.ErrConflict, "invalid services")
 	}
 
-	if err := us.db.Model(&user).Association("Service").Replace(&services); err != nil {
+	if err := us.db.Model(&user).Association("Services").Replace(&services); err != nil {
 		return nil, fmt.Errorf("%w: %s", common.ErrConflict, "invalid services")
 	}
 
