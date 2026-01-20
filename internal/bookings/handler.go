@@ -7,7 +7,6 @@ import (
 	"github.com/MauricioLopezC/ReservationSystem/internal/common"
 	"github.com/MauricioLopezC/ReservationSystem/internal/utils"
 	"github.com/gofiber/fiber/v2"
-	"github.com/golang-jwt/jwt/v5"
 )
 
 type BookingsHandler struct {
@@ -125,7 +124,7 @@ func (h *BookingsHandler) FindOne(c *fiber.Ctx) error {
 }
 
 func (h *BookingsHandler) FindMyBookings(c *fiber.Ctx) error {
-	limit := c.QueryInt("limit")
+	limit := c.QueryInt("limit", 10)
 	if limit <= 0 {
 		return c.Status(fiber.StatusBadRequest).JSON(common.ErrorResponse{
 			StatusCode: fiber.StatusBadRequest,
@@ -133,7 +132,7 @@ func (h *BookingsHandler) FindMyBookings(c *fiber.Ctx) error {
 		})
 	}
 
-	page := c.QueryInt("page")
+	page := c.QueryInt("page", 1)
 	if page <= 0 {
 		return c.Status(fiber.StatusBadRequest).JSON(common.ErrorResponse{
 			StatusCode: fiber.StatusBadRequest,
@@ -180,15 +179,15 @@ func (h *BookingsHandler) CancelBooking(c *fiber.Ctx) error {
 		})
 	}
 	//Get user id
-	userToken, ok1 := c.Locals("user").(*jwt.Token)
-	claims, ok2 := userToken.Claims.(jwt.MapClaims)
-	userId, ok3 := claims["user_id"].(float64)
-	role, ok4 := claims["role"].(string)
-	if !ok1 || !ok2 || !ok3 || !ok4 {
-		return common.NewInternalServerErrorResponse(c)
+	authUser, err := utils.GetAuthUser(c)
+	if err != nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(common.ErrorResponse{
+			StatusCode: fiber.StatusUnauthorized,
+			Message:    "Invalid auth token",
+		})
 	}
 
-	booking, err := h.bookingsService.CancelBooking(id, uint(userId), role)
+	booking, err := h.bookingsService.CancelBooking(id, authUser.ID, authUser.Role)
 	if err != nil {
 		if errors.Is(err, common.ErrUnauthorized) {
 			return c.Status(fiber.StatusUnauthorized).JSON(common.ErrorResponse{

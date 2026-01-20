@@ -34,16 +34,21 @@ func (ss *ServicesService) Create(serviceDto CreateServiceDto) (*model.Service, 
 
 func (ss *ServicesService) FindAll(limit, page int, orderBy string) (*AllServicesResponse, error) {
 	offset := (page - 1) * limit
-	query := ss.db.Limit(limit).Offset(offset)
+	query := ss.db.Model(&model.Service{})
+
+	var count int64
+	if err := query.Count(&count).Error; err != nil {
+		return nil, err
+	}
+
 	if orderBy != "" {
 		query = query.Order(orderBy)
 	}
 
 	services := []model.Service{}
-	query.Find(&services)
-
-	var count int64
-	ss.db.Model(&model.Service{}).Count(&count)
+	if err := query.Limit(limit).Offset(offset).Find(&services).Error; err != nil {
+		return nil, err
+	}
 
 	return &AllServicesResponse{
 		Data:     services,

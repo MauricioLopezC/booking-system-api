@@ -100,10 +100,7 @@ func (bs *BookingsService) FindById(id uint) (*model.Booking, error) {
 func (bs *BookingsService) FindByUserId(limit, page int, orderBy string, userId uint, userRole string) (*AllBookingsResponse, error) {
 	offset := (page - 1) * limit
 
-	query := bs.db.Limit(limit).Offset(offset)
-	if orderBy != "" {
-		query = query.Order(orderBy)
-	}
+	query := bs.db.Model(&model.Booking{})
 
 	if userRole == model.RoleCustomer.String() {
 		query = query.Where("customer_id = ?", userId)
@@ -111,11 +108,21 @@ func (bs *BookingsService) FindByUserId(limit, page int, orderBy string, userId 
 		query = query.Where("employee_id = ?", userId)
 	}
 
-	bookings := []model.Booking{} //declaring bookings slice
-	query.Find(&bookings)
-
 	var count int64
-	bs.db.Model(&model.Booking{}).Count(&count)
+	if err := query.Count(&count).Error; err != nil {
+		return nil, err
+	}
+
+	// 3. Apply sorting and pagination for data retrieval
+	if orderBy != "" {
+		query = query.Order(orderBy)
+	}
+
+	bookings := []model.Booking{}
+	// Note: query.Limit/Offset returns a new instance, safe to use after Count
+	if err := query.Limit(limit).Offset(offset).Find(&bookings).Error; err != nil {
+		return nil, err
+	}
 
 	return &AllBookingsResponse{
 		Data:     bookings,

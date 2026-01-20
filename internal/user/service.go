@@ -21,16 +21,21 @@ func NewUsersService(db *gorm.DB) *UsersService {
 
 func (us *UsersService) FindAll(limit, page int, orderBy string) (*AllUsersResponse, error) {
 	offset := (page - 1) * limit
-	query := us.db.Limit(limit).Offset(offset)
+	query := us.db.Model(&model.User{})
+
+	var count int64
+	if err := query.Count(&count).Error; err != nil {
+		return nil, err
+	}
+
 	if orderBy != "" {
 		query = query.Order(orderBy)
 	}
 
 	users := []model.User{}
-	query.Find(&users)
-
-	var count int64
-	us.db.Model(&model.User{}).Count(&count)
+	if err := query.Limit(limit).Offset(offset).Find(&users).Error; err != nil {
+		return nil, err
+	}
 
 	return &AllUsersResponse{
 		Data:     users,
