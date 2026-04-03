@@ -31,7 +31,7 @@ func (bs *BookingsService) CreateBooking(bookingDto BookingDto, customerID uint)
 		Notes:       bookingDto.Notes,
 	}
 
-	//check if booking date is greater than now, and is Before new two weeks
+	// check if booking date is greater than now, and is Before new two weeks
 	now := time.Now()
 	if !booking.BookingDate.After(now) {
 		return nil, fmt.Errorf("%w: %s", common.ErrValidation, "BookingDate must be greater than the current datetime")
@@ -72,7 +72,7 @@ func (bs *BookingsService) FindAll(limit, page int, orderBy string) (*AllBooking
 		query = query.Order(orderBy)
 	}
 
-	bookings := []model.Booking{} //declaring bookings slice
+	bookings := []model.Booking{} // declaring bookings slice
 	query.Find(&bookings)
 
 	var count int64
@@ -82,16 +82,15 @@ func (bs *BookingsService) FindAll(limit, page int, orderBy string) (*AllBooking
 		Data:     bookings,
 		Metadata: metadata{TotalItems: count},
 	}, nil
-
 }
 
 func (bs *BookingsService) FindById(id uint) (*model.Booking, error) {
 	booking := new(model.Booking)
-	if restult := bs.db.First(booking, id); restult.Error != nil {
-		if errors.Is(restult.Error, gorm.ErrRecordNotFound) {
+	if result := bs.db.First(booking, id); result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			return nil, fmt.Errorf("%w: %s", common.ErrRecordNotFound, "booking")
 		}
-		return nil, restult.Error
+		return nil, result.Error
 	}
 
 	return booking, nil
@@ -131,7 +130,6 @@ func (bs *BookingsService) FindByUserId(limit, page int, orderBy string, userId 
 }
 
 func (bs *BookingsService) CancelBooking(id int, userId uint, userRole string) (*model.Booking, error) {
-
 	hasBooking, err := common.UserHasBooking(bs.db, userId, uint(id), userRole)
 	if err != nil {
 		return nil, err
@@ -148,7 +146,7 @@ func (bs *BookingsService) CancelBooking(id int, userId uint, userRole string) (
 		return nil, err
 	}
 
-	//Check if previous booking status is booked
+	// Check if previous booking status is booked
 	if booking.Status != model.StatusBooked.String() {
 		return nil, fmt.Errorf("%w: %s", common.ErrConflict, "you can't cancel booking with status completed or cancelled")
 	}

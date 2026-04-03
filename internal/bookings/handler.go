@@ -120,7 +120,7 @@ func (h *BookingsHandler) FindOne(c *fiber.Ctx) error {
 		// unexpected error
 		return common.NewInternalServerErrorResponse(c)
 	}
-	return c.Status(fiber.StatusCreated).JSON(booking)
+	return c.Status(fiber.StatusOK).JSON(booking)
 }
 
 func (h *BookingsHandler) FindMyBookings(c *fiber.Ctx) error {
@@ -170,7 +170,7 @@ func (h *BookingsHandler) FindMyBookings(c *fiber.Ctx) error {
 }
 
 func (h *BookingsHandler) CancelBooking(c *fiber.Ctx) error {
-	//Get booking id
+	// Get booking id
 	id, err := c.ParamsInt("id")
 	if err != nil || id <= 0 {
 		return c.Status(fiber.StatusBadRequest).JSON(common.ErrorResponse{
@@ -178,7 +178,7 @@ func (h *BookingsHandler) CancelBooking(c *fiber.Ctx) error {
 			Message:    "Numeric string greater than 0 is expected",
 		})
 	}
-	//Get user id
+	// Get user id
 	authUser, err := utils.GetAuthUser(c)
 	if err != nil {
 		return c.Status(fiber.StatusUnauthorized).JSON(common.ErrorResponse{

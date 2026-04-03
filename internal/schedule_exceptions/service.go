@@ -51,7 +51,7 @@ func (ss *ScheduleExService) Create(userId uint, scheduleExDto CreateScheduleExD
 	dtoEndTime, _ := time.ParseInLocation(time.TimeOnly, *scheduleExDto.EndTime, time.Local)
 
 	fmt.Println(dtoStartTime, dtoEndTime)
-	//validations
+	// validations
 	// Start Time < End Time
 	if !dtoStartTime.Before(dtoEndTime) {
 		return nil, fmt.Errorf("%w: %s", common.ErrValidation, "end time must be greater than the start time")
@@ -133,7 +133,7 @@ func (ss *ScheduleExService) FindAll(limit, page int, orderBy string) (*AllSched
 	offset := (page - 1) * limit
 	query := ss.db.Limit(limit).Offset(offset)
 
-	if orderBy != "" { //if orderBy is not allowed ignore
+	if orderBy != "" { // if orderBy is not allowed ignore
 		query = query.Order(orderBy)
 	}
 
@@ -141,7 +141,7 @@ func (ss *ScheduleExService) FindAll(limit, page int, orderBy string) (*AllSched
 	query.Find(&schedules)
 
 	var count int64
-	ss.db.Model(&model.Schedule{}).Count(&count)
+	ss.db.Model(&model.ScheduleOverride{}).Count(&count)
 
 	return &AllSchedulesResponse{
 		Data:     schedules,
@@ -153,15 +153,15 @@ func (ss *ScheduleExService) FindByUserId(limit, page int, orderBy string, userI
 	offset := (page - 1) * limit
 	query := ss.db.Limit(limit).Offset(offset)
 
-	if orderBy != "" { //if orderBy is not allowed ignore
+	if orderBy != "" { // if orderBy is not allowed ignore
 		query = query.Order(orderBy)
 	}
 
 	schedules := []model.ScheduleOverride{}
-	query.Where("date > ? AND employee_id = ?", time.Now().UTC(), userId).Find(schedules)
+	query.Where("date > ? AND employee_id = ?", time.Now().UTC(), userId).Find(&schedules)
 
 	var count int64
-	ss.db.Model(&model.Schedule{}).Count(&count)
+	ss.db.Model(&model.Schedule{}).Where("date > ? AND employee_id = ?", time.Now().UTC(), userId).Count(&count)
 
 	return &AllSchedulesResponse{
 		Data:     schedules,
