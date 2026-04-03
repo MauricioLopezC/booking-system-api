@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/MauricioLopezC/ReservationSystem/config"
 	"github.com/MauricioLopezC/ReservationSystem/internal/auth"
 	"github.com/MauricioLopezC/ReservationSystem/internal/bookings"
 	"github.com/MauricioLopezC/ReservationSystem/internal/database"
@@ -14,6 +15,7 @@ import (
 )
 
 func main() {
+	config.Load()
 	app := fiber.New()
 	database.ConnectDb()
 	database.Migrate(
