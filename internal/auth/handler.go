@@ -5,7 +5,7 @@ import (
 
 	"github.com/MauricioLopezC/ReservationSystem/internal/common"
 	"github.com/MauricioLopezC/ReservationSystem/internal/utils"
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 type AuthHandler struct {
@@ -16,9 +16,9 @@ func NewAuthHandler(as *AuthService) *AuthHandler {
 	return &AuthHandler{authService: as}
 }
 
-func (h *AuthHandler) Login(c *fiber.Ctx) error {
+func (h *AuthHandler) Login(c fiber.Ctx) error {
 	var loginDto LoginDto
-	if err := c.BodyParser(&loginDto); err != nil {
+	if err := c.Bind().Body(&loginDto); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(err.Error())
 	}
 
@@ -49,10 +49,10 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(loginResponse)
 }
 
-func (h *AuthHandler) Register(c *fiber.Ctx) error {
+func (h *AuthHandler) Register(c fiber.Ctx) error {
 	userDto := new(CreateUserDto)
 
-	if err := c.BodyParser(userDto); err != nil {
+	if err := c.Bind().Body(userDto); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(err.Error())
 	}
 

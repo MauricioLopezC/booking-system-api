@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/MauricioLopezC/ReservationSystem/internal/common"
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 type SlotsHandler struct {
@@ -16,8 +16,8 @@ func NewSlotsHandler(slotsService *SlotsService) *SlotsHandler {
 	return &SlotsHandler{slotsService: slotsService}
 }
 
-func (h *SlotsHandler) FindAvailableSlots(c *fiber.Ctx) error {
-	serviceId := c.QueryInt("serviceId", 0)
+func (h *SlotsHandler) FindAvailableSlots(c fiber.Ctx) error {
+	serviceId := fiber.Query[int](c, "serviceId", 0)
 	if serviceId <= 0 {
 		return c.Status(fiber.StatusBadRequest).JSON(common.ErrorResponse{
 			StatusCode: fiber.StatusBadRequest,
@@ -25,7 +25,7 @@ func (h *SlotsHandler) FindAvailableSlots(c *fiber.Ctx) error {
 		})
 	}
 
-	employeeId := c.QueryInt("employeeId", 0)
+	employeeId := fiber.Query[int](c, "employeeId", 0)
 	if employeeId <= 0 {
 		return c.Status(fiber.StatusBadRequest).JSON(common.ErrorResponse{
 			StatusCode: fiber.StatusBadRequest,

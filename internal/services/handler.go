@@ -6,7 +6,7 @@ import (
 
 	"github.com/MauricioLopezC/ReservationSystem/internal/common"
 	"github.com/MauricioLopezC/ReservationSystem/internal/utils"
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 type ServicesHandler struct {
@@ -18,10 +18,10 @@ func NewServicesHandler(servicesService *ServicesService) *ServicesHandler {
 }
 
 // Use in POST /service endpoint with required roles: admin
-func (h *ServicesHandler) Create(c *fiber.Ctx) error {
+func (h *ServicesHandler) Create(c fiber.Ctx) error {
 	serviceDto := new(CreateServiceDto)
 
-	if err := c.BodyParser(serviceDto); err != nil {
+	if err := c.Bind().Body(serviceDto); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(common.ErrorResponse{
 			StatusCode: fiber.StatusBadRequest,
 			Message:    err.Error(),
@@ -46,8 +46,8 @@ func (h *ServicesHandler) Create(c *fiber.Ctx) error {
 
 // Use in GET /services endpoint, public route, use employeeId optional
 // param to get the employee services
-func (h *ServicesHandler) FindAll(c *fiber.Ctx) error {
-	limit := c.QueryInt("limit")
+func (h *ServicesHandler) FindAll(c fiber.Ctx) error {
+	limit := fiber.Query[int](c, "limit")
 	if limit <= 0 {
 		return c.Status(fiber.StatusBadRequest).JSON(common.ErrorResponse{
 			StatusCode: fiber.StatusBadRequest,
@@ -55,7 +55,7 @@ func (h *ServicesHandler) FindAll(c *fiber.Ctx) error {
 		})
 	}
 
-	page := c.QueryInt("page")
+	page := fiber.Query[int](c, "page")
 	if page <= 0 {
 		return c.Status(fiber.StatusBadRequest).JSON(common.ErrorResponse{
 			StatusCode: fiber.StatusBadRequest,
@@ -77,8 +77,8 @@ func (h *ServicesHandler) FindAll(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(allServicesResponse)
 }
 
-func (h *ServicesHandler) Update(c *fiber.Ctx) error {
-	id, err := c.ParamsInt("id")
+func (h *ServicesHandler) Update(c fiber.Ctx) error {
+	id, err := fiber.Params[int](c, "id"), error(nil)
 	if err != nil || id <= 0 {
 		return c.Status(fiber.StatusBadRequest).JSON(common.ErrorResponse{
 			StatusCode: fiber.StatusBadRequest,
@@ -87,7 +87,7 @@ func (h *ServicesHandler) Update(c *fiber.Ctx) error {
 	}
 
 	var serviceDto UpdateServiceDto
-	if err := c.BodyParser(&serviceDto); err != nil {
+	if err := c.Bind().Body(&serviceDto); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(common.ErrorResponse{
 			StatusCode: fiber.StatusBadRequest,
 			Message:    err.Error(),
@@ -108,8 +108,8 @@ func (h *ServicesHandler) Update(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(updatedService)
 }
 
-func (h *ServicesHandler) Delete(c *fiber.Ctx) error {
-	id, err := c.ParamsInt("id")
+func (h *ServicesHandler) Delete(c fiber.Ctx) error {
+	id, err := fiber.Params[int](c, "id"), error(nil)
 	if err != nil || id <= 0 {
 		return c.Status(fiber.StatusBadRequest).JSON(common.ErrorResponse{
 			StatusCode: fiber.StatusBadRequest,

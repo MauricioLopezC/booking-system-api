@@ -5,7 +5,7 @@ import (
 
 	"github.com/MauricioLopezC/ReservationSystem/internal/common"
 	"github.com/MauricioLopezC/ReservationSystem/internal/utils"
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 type ScheduleHandler struct {
@@ -16,10 +16,10 @@ func NewScheduleHandler(scheduleService *ScheduleService) *ScheduleHandler {
 	return &ScheduleHandler{scheduleService: scheduleService}
 }
 
-func (h *ScheduleHandler) CreateMySchedule(c *fiber.Ctx) error {
+func (h *ScheduleHandler) CreateMySchedule(c fiber.Ctx) error {
 	scheduleDto := new(CreateScheduleDto)
 
-	if err := c.BodyParser(scheduleDto); err != nil {
+	if err := c.Bind().Body(scheduleDto); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(common.ErrorResponse{StatusCode: fiber.StatusBadRequest, Message: err.Error()})
 	}
 
@@ -60,8 +60,8 @@ func (h *ScheduleHandler) CreateMySchedule(c *fiber.Ctx) error {
 }
 
 // admin only
-func (h *ScheduleHandler) FindAll(c *fiber.Ctx) error {
-	limit := c.QueryInt("limit")
+func (h *ScheduleHandler) FindAll(c fiber.Ctx) error {
+	limit := fiber.Query[int](c, "limit")
 	if limit <= 0 {
 		return c.Status(fiber.ErrBadRequest.Code).JSON(common.ErrorResponse{
 			StatusCode: fiber.StatusBadRequest,
@@ -69,7 +69,7 @@ func (h *ScheduleHandler) FindAll(c *fiber.Ctx) error {
 		})
 	}
 
-	page := c.QueryInt("page")
+	page := fiber.Query[int](c, "page")
 	if page <= 0 {
 		return c.Status(fiber.ErrBadRequest.Code).JSON(common.ErrorResponse{
 			StatusCode: fiber.StatusBadRequest,
@@ -89,8 +89,8 @@ func (h *ScheduleHandler) FindAll(c *fiber.Ctx) error {
 }
 
 // Admin only
-func (h *ScheduleHandler) FindOne(c *fiber.Ctx) error {
-	id, err := c.ParamsInt("id")
+func (h *ScheduleHandler) FindOne(c fiber.Ctx) error {
+	id, err := fiber.Params[int](c, "id"), error(nil)
 	if err != nil || id <= 0 {
 		return c.Status(fiber.StatusBadRequest).JSON(common.ErrorResponse{
 			StatusCode: fiber.StatusBadRequest,
@@ -113,7 +113,7 @@ func (h *ScheduleHandler) FindOne(c *fiber.Ctx) error {
 
 // Use in endpoint: GET /me/schedules
 // there is no need for paginate because employee needs to see all his schedules
-func (h *ScheduleHandler) FindMySchedules(c *fiber.Ctx) error {
+func (h *ScheduleHandler) FindMySchedules(c fiber.Ctx) error {
 	authUser, err := utils.GetAuthUser(c)
 	if err != nil {
 		return c.Status(fiber.StatusUnauthorized).JSON(common.ErrorResponse{
@@ -130,8 +130,8 @@ func (h *ScheduleHandler) FindMySchedules(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(schedules)
 }
 
-func (h *ScheduleHandler) DeleteMySchedules(c *fiber.Ctx) error {
-	id, err := c.ParamsInt("id")
+func (h *ScheduleHandler) DeleteMySchedules(c fiber.Ctx) error {
+	id, err := fiber.Params[int](c, "id"), error(nil)
 	if err != nil || id <= 0 {
 		return c.Status(fiber.StatusBadRequest).JSON(common.ErrorResponse{
 			StatusCode: fiber.StatusBadRequest,

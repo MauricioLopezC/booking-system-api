@@ -11,7 +11,7 @@ import (
 	"github.com/MauricioLopezC/ReservationSystem/internal/services"
 	"github.com/MauricioLopezC/ReservationSystem/internal/slots"
 	"github.com/MauricioLopezC/ReservationSystem/internal/user"
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 func main() {

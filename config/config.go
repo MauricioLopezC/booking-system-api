@@ -1,3 +1,4 @@
+// Package config config for env variables
 package config
 
 import (

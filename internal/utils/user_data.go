@@ -2,7 +2,7 @@ package utils
 
 import (
 	"github.com/MauricioLopezC/ReservationSystem/internal/common"
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/golang-jwt/jwt/v5"
 )
 
@@ -11,7 +11,7 @@ type AuthUser struct {
 	Role string
 }
 
-func GetAuthUser(c *fiber.Ctx) (*AuthUser, error) {
+func GetAuthUser(c fiber.Ctx) (*AuthUser, error) {
 	//get user data from context
 	userToken, ok1 := c.Locals("user").(*jwt.Token)
 	claims, ok2 := userToken.Claims.(jwt.MapClaims)

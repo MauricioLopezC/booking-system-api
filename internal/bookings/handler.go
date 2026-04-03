@@ -6,7 +6,7 @@ import (
 
 	"github.com/MauricioLopezC/ReservationSystem/internal/common"
 	"github.com/MauricioLopezC/ReservationSystem/internal/utils"
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 type BookingsHandler struct {
@@ -17,10 +17,10 @@ func NewBookingsHandler(bookingsSerice *BookingsService) *BookingsHandler {
 	return &BookingsHandler{bookingsService: bookingsSerice}
 }
 
-func (h *BookingsHandler) CreateMyBooking(c *fiber.Ctx) error {
+func (h *BookingsHandler) CreateMyBooking(c fiber.Ctx) error {
 	bookingDto := new(BookingDto)
 
-	if err := c.BodyParser(bookingDto); err != nil {
+	if err := c.Bind().Body(bookingDto); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(common.ErrorResponse{StatusCode: fiber.StatusBadRequest, Message: err.Error()})
 	}
 
@@ -66,8 +66,8 @@ func (h *BookingsHandler) CreateMyBooking(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(newBooking)
 }
 
-func (h *BookingsHandler) FindAll(c *fiber.Ctx) error {
-	limit := c.QueryInt("limit")
+func (h *BookingsHandler) FindAll(c fiber.Ctx) error {
+	limit := fiber.Query[int](c, "limit")
 	if limit <= 0 {
 		return c.Status(fiber.ErrBadRequest.Code).JSON(common.ErrorResponse{
 			StatusCode: 400,
@@ -75,7 +75,7 @@ func (h *BookingsHandler) FindAll(c *fiber.Ctx) error {
 		})
 	}
 
-	page := c.QueryInt("page")
+	page := fiber.Query[int](c, "page")
 	if page <= 0 {
 		return c.Status(fiber.ErrBadRequest.Code).JSON(common.ErrorResponse{
 			StatusCode: 400,
@@ -100,8 +100,8 @@ func (h *BookingsHandler) FindAll(c *fiber.Ctx) error {
 }
 
 // ADMIN ONLY
-func (h *BookingsHandler) FindOne(c *fiber.Ctx) error {
-	id, err := c.ParamsInt("id")
+func (h *BookingsHandler) FindOne(c fiber.Ctx) error {
+	id, err := fiber.Params[int](c, "id"), error(nil)
 	if err != nil || id <= 0 {
 		return c.Status(fiber.StatusBadRequest).JSON(common.ErrorResponse{
 			StatusCode: fiber.StatusBadRequest,
@@ -123,8 +123,8 @@ func (h *BookingsHandler) FindOne(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(booking)
 }
 
-func (h *BookingsHandler) FindMyBookings(c *fiber.Ctx) error {
-	limit := c.QueryInt("limit", 10)
+func (h *BookingsHandler) FindMyBookings(c fiber.Ctx) error {
+	limit := fiber.Query(c, "limit", 10)
 	if limit <= 0 {
 		return c.Status(fiber.StatusBadRequest).JSON(common.ErrorResponse{
 			StatusCode: fiber.StatusBadRequest,
@@ -132,7 +132,7 @@ func (h *BookingsHandler) FindMyBookings(c *fiber.Ctx) error {
 		})
 	}
 
-	page := c.QueryInt("page", 1)
+	page := fiber.Query(c, "page", 1)
 	if page <= 0 {
 		return c.Status(fiber.StatusBadRequest).JSON(common.ErrorResponse{
 			StatusCode: fiber.StatusBadRequest,
@@ -169,9 +169,9 @@ func (h *BookingsHandler) FindMyBookings(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(allBookingsResponse)
 }
 
-func (h *BookingsHandler) CancelBooking(c *fiber.Ctx) error {
+func (h *BookingsHandler) CancelBooking(c fiber.Ctx) error {
 	// Get booking id
-	id, err := c.ParamsInt("id")
+	id, err := fiber.Params[int](c, "id"), error(nil)
 	if err != nil || id <= 0 {
 		return c.Status(fiber.StatusBadRequest).JSON(common.ErrorResponse{
 			StatusCode: fiber.StatusBadRequest,

@@ -5,8 +5,8 @@ import (
 
 	"github.com/MauricioLopezC/ReservationSystem/config"
 	"github.com/MauricioLopezC/ReservationSystem/internal/common"
-	jwtware "github.com/gofiber/contrib/jwt"
-	"github.com/gofiber/fiber/v2"
+	jwtware "github.com/gofiber/contrib/v3/jwt"
+	"github.com/gofiber/fiber/v3"
 	"github.com/golang-jwt/jwt/v5"
 )
 
@@ -18,7 +18,7 @@ func Protected() fiber.Handler {
 	})
 }
 
-func jwtError(c *fiber.Ctx, err error) error {
+func jwtError(c fiber.Ctx, err error) error {
 	if err.Error() == "Missing or malformed JWT" {
 		return c.Status(fiber.StatusBadRequest).JSON(common.ErrorResponse{
 			StatusCode: fiber.StatusUnauthorized,
@@ -33,7 +33,7 @@ func jwtError(c *fiber.Ctx, err error) error {
 
 // Use this middleware after the Protected middleware to extract the JWT claims.
 func RoleMiddleware(allowedRoles ...string) fiber.Handler {
-	return func(c *fiber.Ctx) error {
+	return func(c fiber.Ctx) error {
 		//get user info
 		user, ok1 := c.Locals("user").(*jwt.Token)
 		claims, ok2 := user.Claims.(jwt.MapClaims)

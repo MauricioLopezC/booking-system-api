@@ -1,3 +1,4 @@
+// Package scheduleexceptions
 package scheduleexceptions
 
 import (
@@ -5,7 +6,7 @@ import (
 
 	"github.com/MauricioLopezC/ReservationSystem/internal/common"
 	"github.com/MauricioLopezC/ReservationSystem/internal/utils"
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 type ScheduleExHandler struct {
@@ -16,10 +17,10 @@ func NewScheduleExHandler(ss *ScheduleExService) *ScheduleExHandler {
 	return &ScheduleExHandler{scheduleExService: ss}
 }
 
-func (h *ScheduleExHandler) CreateMyScheduleEx(c *fiber.Ctx) error {
+func (h *ScheduleExHandler) CreateMyScheduleEx(c fiber.Ctx) error {
 	scheduleDto := new(CreateScheduleExDto)
 
-	if err := c.BodyParser(scheduleDto); err != nil {
+	if err := c.Bind().Body(scheduleDto); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(common.ErrorResponse{StatusCode: fiber.StatusBadRequest, Message: err.Error()})
 	}
 
@@ -52,15 +53,15 @@ func (h *ScheduleExHandler) CreateMyScheduleEx(c *fiber.Ctx) error {
 				Message:    err.Error(),
 			})
 		}
-		//other errors
+		// other errors
 		return common.NewInternalServerErrorResponse(c)
 	}
 
 	return c.Status(fiber.StatusCreated).JSON(schedule)
 }
 
-func (h *ScheduleExHandler) FindAll(c *fiber.Ctx) error {
-	limit := c.QueryInt("limit")
+func (h *ScheduleExHandler) FindAll(c fiber.Ctx) error {
+	limit := fiber.Query[int](c, "limit")
 	if limit <= 0 {
 		return c.Status(fiber.ErrBadRequest.Code).JSON(common.ErrorResponse{
 			StatusCode: fiber.StatusBadRequest,
@@ -68,7 +69,7 @@ func (h *ScheduleExHandler) FindAll(c *fiber.Ctx) error {
 		})
 	}
 
-	page := c.QueryInt("page")
+	page := fiber.Query[int](c, "page")
 	if page <= 0 {
 		return c.Status(fiber.ErrBadRequest.Code).JSON(common.ErrorResponse{
 			StatusCode: fiber.StatusBadRequest,
@@ -88,8 +89,8 @@ func (h *ScheduleExHandler) FindAll(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(allSchedueles)
 }
 
-func (h *ScheduleExHandler) FindMyScheduleExs(c *fiber.Ctx) error {
-	limit := c.QueryInt("limit")
+func (h *ScheduleExHandler) FindMyScheduleExs(c fiber.Ctx) error {
+	limit := fiber.Query[int](c, "limit")
 	if limit <= 0 {
 		return c.Status(fiber.ErrBadRequest.Code).JSON(common.ErrorResponse{
 			StatusCode: fiber.StatusBadRequest,
@@ -97,7 +98,7 @@ func (h *ScheduleExHandler) FindMyScheduleExs(c *fiber.Ctx) error {
 		})
 	}
 
-	page := c.QueryInt("page")
+	page := fiber.Query[int](c, "page")
 	if page <= 0 {
 		return c.Status(fiber.ErrBadRequest.Code).JSON(common.ErrorResponse{
 			StatusCode: fiber.StatusBadRequest,
@@ -124,8 +125,8 @@ func (h *ScheduleExHandler) FindMyScheduleExs(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(schedules)
 }
 
-func (h *ScheduleExHandler) DeleteMyScheduleEx(c *fiber.Ctx) error {
-	id, _ := c.ParamsInt("id")
+func (h *ScheduleExHandler) DeleteMyScheduleEx(c fiber.Ctx) error {
+	id, _ := fiber.Params[int](c, "id"), error(nil)
 	if id <= 0 {
 		return c.Status(fiber.StatusBadRequest).JSON(common.ErrorResponse{
 			StatusCode: fiber.StatusBadRequest,
