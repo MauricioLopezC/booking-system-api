@@ -18,16 +18,16 @@ func NewSlotsHandler(slotsService *SlotsService) *SlotsHandler {
 }
 
 func (h *SlotsHandler) FindAvailableSlots(c fiber.Ctx) error {
-	serviceId := fiber.Query[int](c, "serviceId", 0)
-	if serviceId <= 0 {
+	serviceID := fiber.Query[int](c, "serviceId", 0)
+	if serviceID <= 0 {
 		return c.Status(fiber.StatusBadRequest).JSON(common.ErrorResponse{
 			StatusCode: fiber.StatusBadRequest,
 			Message:    "ServiceId must be an integer gt 0",
 		})
 	}
 
-	employeeId := fiber.Query[int](c, "employeeId", 0)
-	if employeeId <= 0 {
+	employeeID := fiber.Query[int](c, "employeeId", 0)
+	if employeeID <= 0 {
 		return c.Status(fiber.StatusBadRequest).JSON(common.ErrorResponse{
 			StatusCode: fiber.StatusBadRequest,
 			Message:    "employeeId must be an integer gt 0",
@@ -50,7 +50,7 @@ func (h *SlotsHandler) FindAvailableSlots(c fiber.Ctx) error {
 	}
 	startDate := time.Now()
 
-	slots, err := h.slotsService.FindAvailableSlots(uint(employeeId), uint(serviceId), startDate, endDate)
+	slots, err := h.slotsService.FindAvailableSlots(uint(employeeID), uint(serviceID), startDate, endDate)
 	if err != nil {
 		if errors.Is(err, common.ErrValidation) {
 			return c.Status(fiber.StatusBadRequest).JSON(common.ErrorResponse{

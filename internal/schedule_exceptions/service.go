@@ -19,10 +19,10 @@ func NewScheduleExService(db *gorm.DB) *ScheduleExService {
 	return &ScheduleExService{db: db}
 }
 
-func (ss *ScheduleExService) Create(userId uint, scheduleExDto CreateScheduleExDto) (*model.ScheduleOverride, error) {
+func (ss *ScheduleExService) Create(userID uint, scheduleExDto CreateScheduleExDto) (*model.ScheduleOverride, error) {
 	dtoDate, _ := time.Parse(time.DateOnly, scheduleExDto.Date)
 	schedulesFound := []model.ScheduleOverride{}
-	ss.db.Where("DATE(date) = ? AND employee_id = ?", scheduleExDto.Date, userId).Find(&schedulesFound)
+	ss.db.Where("DATE(date) = ? AND employee_id = ?", scheduleExDto.Date, userID).Find(&schedulesFound)
 
 	if scheduleExDto.AllDay && len(schedulesFound) != 0 {
 		return nil, fmt.Errorf("%w: %s", common.ErrConflict, "there is already an exception for this date")
@@ -30,7 +30,7 @@ func (ss *ScheduleExService) Create(userId uint, scheduleExDto CreateScheduleExD
 
 	if scheduleExDto.AllDay && len(schedulesFound) == 0 {
 		scheduleEx := model.ScheduleOverride{
-			EmployeeID: userId,
+			EmployeeID: userID,
 			Date:       dtoDate,
 			Reason:     scheduleExDto.Reason,
 			AllDay:     scheduleExDto.AllDay,
@@ -81,7 +81,7 @@ func (ss *ScheduleExService) Create(userId uint, scheduleExDto CreateScheduleExD
 	}
 
 	scheduleEx := model.ScheduleOverride{
-		EmployeeID: userId,
+		EmployeeID: userID,
 		Date:       dtoDate,
 		Reason:     scheduleExDto.Reason,
 		AllDay:     scheduleExDto.AllDay,
@@ -149,7 +149,7 @@ func (ss *ScheduleExService) FindAll(limit, page int, orderBy string) (*AllSched
 	}, nil
 }
 
-func (ss *ScheduleExService) FindByUserId(limit, page int, orderBy string, userId uint) (*AllSchedulesResponse, error) {
+func (ss *ScheduleExService) FindByUserID(limit, page int, orderBy string, userID uint) (*AllSchedulesResponse, error) {
 	offset := (page - 1) * limit
 	query := ss.db.Limit(limit).Offset(offset)
 
@@ -158,10 +158,10 @@ func (ss *ScheduleExService) FindByUserId(limit, page int, orderBy string, userI
 	}
 
 	schedules := []model.ScheduleOverride{}
-	query.Where("date > ? AND employee_id = ?", time.Now().UTC(), userId).Find(&schedules)
+	query.Where("date > ? AND employee_id = ?", time.Now().UTC(), userID).Find(&schedules)
 
 	var count int64
-	ss.db.Model(&model.Schedule{}).Where("date > ? AND employee_id = ?", time.Now().UTC(), userId).Count(&count)
+	ss.db.Model(&model.Schedule{}).Where("date > ? AND employee_id = ?", time.Now().UTC(), userID).Count(&count)
 
 	return &AllSchedulesResponse{
 		Data:     schedules,
@@ -169,10 +169,10 @@ func (ss *ScheduleExService) FindByUserId(limit, page int, orderBy string, userI
 	}, nil
 }
 
-func (ss *ScheduleExService) DeleteByUserId(id, employeeId uint) (*model.ScheduleOverride, error) {
+func (ss *ScheduleExService) DeleteByUserID(id, employeeID uint) (*model.ScheduleOverride, error) {
 	var deletedScheduleEx model.ScheduleOverride
 
-	if result := ss.db.Clauses(clause.Returning{}).Where("id = ? AND employee_id = ?", id, employeeId).Delete(&deletedScheduleEx); result.Error != nil {
+	if result := ss.db.Clauses(clause.Returning{}).Where("id = ? AND employee_id = ?", id, employeeID).Delete(&deletedScheduleEx); result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			return nil, fmt.Errorf("%w: %s", common.ErrRecordNotFound, "schedule")
 		}

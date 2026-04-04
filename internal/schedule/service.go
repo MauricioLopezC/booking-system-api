@@ -19,7 +19,7 @@ func NewScheduleService(db *gorm.DB) *ScheduleService {
 	return &ScheduleService{db: db}
 }
 
-func (ss *ScheduleService) Create(userId uint, scheduleDto CreateScheduleDto) (*model.Schedule, error) {
+func (ss *ScheduleService) Create(userID uint, scheduleDto CreateScheduleDto) (*model.Schedule, error) {
 	layout := "15:04"
 
 	dtoStartTime, err := time.ParseInLocation(layout, scheduleDto.StartTime, time.Local)
@@ -40,7 +40,7 @@ func (ss *ScheduleService) Create(userId uint, scheduleDto CreateScheduleDto) (*
 	}
 
 	schedulesFound := []model.Schedule{}
-	ss.db.Where("employee_id = ? AND week_day = ?", userId, scheduleDto.WeekDay).Find(&schedulesFound)
+	ss.db.Where("employee_id = ? AND week_day = ?", userID, scheduleDto.WeekDay).Find(&schedulesFound)
 
 	hasOverlap, matchSchedule := hasScheduleOverlap(dtoStartTime, dtoEndTime, schedulesFound)
 
@@ -56,7 +56,7 @@ func (ss *ScheduleService) Create(userId uint, scheduleDto CreateScheduleDto) (*
 	}
 
 	newSchedule := model.Schedule{
-		EmployeeID: userId,
+		EmployeeID: userID,
 		WeekDay:    scheduleDto.WeekDay,
 		StartTime:  dtoStartTime,
 		EndTime:    dtoEndTime,
@@ -128,9 +128,9 @@ func (ss *ScheduleService) FindOne(id uint) (*model.Schedule, error) {
 }
 
 // there is no need for paginate because employee needs to see all his schedules
-func (ss *ScheduleService) FindByUserId(userId uint) ([]model.Schedule, error) {
+func (ss *ScheduleService) FindByUserID(userID uint) ([]model.Schedule, error) {
 	schedules := []model.Schedule{}
-	if result := ss.db.Where("employee_id = ?", userId).Order("week_day").Find(&schedules); result.Error != nil {
+	if result := ss.db.Where("employee_id = ?", userID).Order("week_day").Find(&schedules); result.Error != nil {
 		return nil, result.Error
 	}
 	return schedules, nil
@@ -148,10 +148,10 @@ func (ss *ScheduleService) Delete(id uint) (*model.Schedule, error) {
 	return &schedule, nil
 }
 
-func (ss *ScheduleService) DeleteByUserId(id, userId uint) (*model.Schedule, error) {
+func (ss *ScheduleService) DeleteByUserID(id, userID uint) (*model.Schedule, error) {
 	var schedule model.Schedule
 
-	if result := ss.db.Clauses(clause.Returning{}).Where("employee_id = ? AND id = ?", userId, id).Delete(&schedule); result.Error != nil {
+	if result := ss.db.Clauses(clause.Returning{}).Where("employee_id = ? AND id = ?", userID, id).Delete(&schedule); result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			return nil, fmt.Errorf("%w: %s", common.ErrRecordNotFound, "schedule")
 		}

@@ -123,7 +123,7 @@ func (h *ScheduleHandler) FindMySchedules(c fiber.Ctx) error {
 		})
 	}
 
-	schedules, err := h.scheduleService.FindByUserId(uint(authUser.ID))
+	schedules, err := h.scheduleService.FindByUserID(uint(authUser.ID))
 	if err != nil {
 		return common.NewInternalServerErrorResponse(c)
 	}
@@ -148,7 +148,7 @@ func (h *ScheduleHandler) DeleteMySchedules(c fiber.Ctx) error {
 		})
 	}
 
-	schedule, err := h.scheduleService.DeleteByUserId(uint(id), authUser.ID)
+	schedule, err := h.scheduleService.DeleteByUserID(uint(id), authUser.ID)
 	if err != nil {
 		if errors.Is(err, common.ErrRecordNotFound) {
 			return c.Status(fiber.StatusNotFound).JSON(common.ErrorResponse{

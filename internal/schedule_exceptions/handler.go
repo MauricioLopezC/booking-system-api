@@ -121,7 +121,7 @@ func (h *ScheduleExHandler) FindMyScheduleExs(c fiber.Ctx) error {
 		})
 	}
 
-	schedules, _ := h.scheduleExService.FindByUserId(limit, page, orderBy, authUser.ID)
+	schedules, _ := h.scheduleExService.FindByUserID(limit, page, orderBy, authUser.ID)
 	return c.Status(fiber.StatusOK).JSON(schedules)
 }
 
@@ -142,7 +142,7 @@ func (h *ScheduleExHandler) DeleteMyScheduleEx(c fiber.Ctx) error {
 		})
 	}
 
-	deletedScheduleEx, err := h.scheduleExService.DeleteByUserId(uint(id), authUser.ID)
+	deletedScheduleEx, err := h.scheduleExService.DeleteByUserID(uint(id), authUser.ID)
 	if err != nil {
 		if errors.Is(err, common.ErrRecordNotFound) {
 			return c.Status(fiber.StatusNotFound).JSON(common.ErrorResponse{

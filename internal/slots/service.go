@@ -19,7 +19,7 @@ func NewSlotsService(db *gorm.DB) *SlotsService {
 
 type SlotMap map[string][]time.Time // fecha en formato YYYY-MM-DD
 
-func (ss *SlotsService) FindAvailableSlots(employeeId, serviceId uint, startDate, endDate time.Time) (SlotMap, error) {
+func (ss *SlotsService) FindAvailableSlots(employeeID, serviceID uint, startDate, endDate time.Time) (SlotMap, error) {
 
 	if endDate.After(startDate.AddDate(0, 0, 14)) {
 		return nil, fmt.Errorf("%w: %s", common.ErrValidation, "endDate must no exceed two weeks from today")
@@ -30,11 +30,11 @@ func (ss *SlotsService) FindAvailableSlots(employeeId, serviceId uint, startDate
 	}
 
 	var service model.Service
-	if result := ss.db.First(&service, serviceId); result.Error != nil {
+	if result := ss.db.First(&service, serviceID); result.Error != nil {
 		return nil, fmt.Errorf("%w: %s", common.ErrValidation, "Employee does not have the selected service")
 	}
 
-	hasService, err := common.EmployeeHasService(ss.db, employeeId, serviceId)
+	hasService, err := common.EmployeeHasService(ss.db, employeeID, serviceID)
 	if err != nil {
 		return nil, err
 	}
@@ -45,7 +45,7 @@ func (ss *SlotsService) FindAvailableSlots(employeeId, serviceId uint, startDate
 
 	// step 2. get employee schedules
 	schedules := []model.Schedule{}
-	if result := ss.db.Where("employee_id = ?", employeeId).Order("week_day").Find(&schedules); result.Error != nil {
+	if result := ss.db.Where("employee_id = ?", employeeID).Order("week_day").Find(&schedules); result.Error != nil {
 		return nil, result.Error
 	}
 
@@ -61,12 +61,12 @@ func (ss *SlotsService) FindAvailableSlots(employeeId, serviceId uint, startDate
 	exceptions := []model.ScheduleOverride{}
 
 	if startDate.Equal(endDate) {
-		result := ss.db.Where("employee_id = ? AND date BETWEEN ? AND ? AND is_available = ?", employeeId, startDate, endDate.AddDate(0, 0, 1), false).Find(&exceptions)
+		result := ss.db.Where("employee_id = ? AND date BETWEEN ? AND ? AND is_available = ?", employeeID, startDate, endDate.AddDate(0, 0, 1), false).Find(&exceptions)
 		if result.Error != nil {
 			return nil, err
 		}
 	} else {
-		result := ss.db.Where("employee_id = ? AND date BETWEEN ? AND ? AND is_available = ?", employeeId, startDate, endDate, false).Find(&exceptions)
+		result := ss.db.Where("employee_id = ? AND date BETWEEN ? AND ? AND is_available = ?", employeeID, startDate, endDate, false).Find(&exceptions)
 		if result.Error != nil {
 			return nil, err
 		}
@@ -82,12 +82,12 @@ func (ss *SlotsService) FindAvailableSlots(employeeId, serviceId uint, startDate
 	//step 4. get existing bookings
 	bookings := []model.Booking{}
 	if startDate.Equal(endDate) {
-		result := ss.db.Preload("Service").Where("employee_id = ? AND booking_date BETWEEN ? AND ?", employeeId, startDate, endDate.AddDate(0, 0, 1)).Find(&bookings)
+		result := ss.db.Preload("Service").Where("employee_id = ? AND booking_date BETWEEN ? AND ?", employeeID, startDate, endDate.AddDate(0, 0, 1)).Find(&bookings)
 		if result.Error != nil {
 			return nil, err
 		}
 	} else {
-		result := ss.db.Preload("Service").Where("employee_id = ? AND booking_date BETWEEN ? AND ?", employeeId, startDate, endDate).Find(&bookings)
+		result := ss.db.Preload("Service").Where("employee_id = ? AND booking_date BETWEEN ? AND ?", employeeID, startDate, endDate).Find(&bookings)
 		if result.Error != nil {
 			return nil, err
 		}

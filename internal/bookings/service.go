@@ -84,7 +84,7 @@ func (bs *BookingsService) FindAll(limit, page int, orderBy string) (*AllBooking
 	}, nil
 }
 
-func (bs *BookingsService) FindById(id uint) (*model.Booking, error) {
+func (bs *BookingsService) FindByID(id uint) (*model.Booking, error) {
 	booking := new(model.Booking)
 	if result := bs.db.First(booking, id); result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
@@ -96,15 +96,15 @@ func (bs *BookingsService) FindById(id uint) (*model.Booking, error) {
 	return booking, nil
 }
 
-func (bs *BookingsService) FindByUserId(limit, page int, orderBy string, userId uint, userRole string) (*AllBookingsResponse, error) {
+func (bs *BookingsService) FindByUserID(limit, page int, orderBy string, userID uint, userRole string) (*AllBookingsResponse, error) {
 	offset := (page - 1) * limit
 
 	query := bs.db.Model(&model.Booking{})
 
 	if userRole == model.RoleCustomer.String() {
-		query = query.Where("customer_id = ?", userId)
+		query = query.Where("customer_id = ?", userID)
 	} else {
-		query = query.Where("employee_id = ?", userId)
+		query = query.Where("employee_id = ?", userID)
 	}
 
 	var count int64
@@ -129,8 +129,8 @@ func (bs *BookingsService) FindByUserId(limit, page int, orderBy string, userId 
 	}, nil
 }
 
-func (bs *BookingsService) CancelBooking(id int, userId uint, userRole string) (*model.Booking, error) {
-	hasBooking, err := common.UserHasBooking(bs.db, userId, uint(id), userRole)
+func (bs *BookingsService) CancelBooking(id int, userID uint, userRole string) (*model.Booking, error) {
+	hasBooking, err := common.UserHasBooking(bs.db, userID, uint(id), userRole)
 	if err != nil {
 		return nil, err
 	}

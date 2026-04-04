@@ -110,7 +110,7 @@ func (h *BookingsHandler) FindOne(c fiber.Ctx) error {
 		})
 	}
 
-	booking, err := h.bookingsService.FindById(uint(id))
+	booking, err := h.bookingsService.FindByID(uint(id))
 	if err != nil {
 		if errors.Is(err, common.ErrRecordNotFound) {
 			return c.Status(fiber.StatusNotFound).JSON(common.ErrorResponse{
@@ -156,7 +156,7 @@ func (h *BookingsHandler) FindMyBookings(c fiber.Ctx) error {
 		})
 	}
 
-	allBookingsResponse, err := h.bookingsService.FindByUserId(limit, page, orderBy, authUser.ID, authUser.Role)
+	allBookingsResponse, err := h.bookingsService.FindByUserID(limit, page, orderBy, authUser.ID, authUser.Role)
 	if err != nil {
 		if errors.Is(err, common.ErrUnauthorized) {
 			return c.Status(fiber.StatusUnauthorized).JSON(common.ErrorResponse{
