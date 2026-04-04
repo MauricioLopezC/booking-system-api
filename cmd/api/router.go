@@ -1,14 +1,18 @@
 package main
 
 import (
+	"time"
+
 	"github.com/MauricioLopezC/ReservationSystem/internal/auth"
 	"github.com/MauricioLopezC/ReservationSystem/internal/bookings"
+	"github.com/MauricioLopezC/ReservationSystem/internal/common"
 	"github.com/MauricioLopezC/ReservationSystem/internal/schedule"
 	scheduleexceptions "github.com/MauricioLopezC/ReservationSystem/internal/schedule_exceptions"
 	"github.com/MauricioLopezC/ReservationSystem/internal/services"
 	"github.com/MauricioLopezC/ReservationSystem/internal/slots"
 	"github.com/MauricioLopezC/ReservationSystem/internal/user"
 	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v3/middleware/limiter"
 	"github.com/gofiber/fiber/v3/middleware/logger"
 )
 
@@ -22,11 +26,39 @@ func SetupRoutes(
 	schedulesExH *scheduleexceptions.ScheduleExHandler,
 	usersH *user.UsersHandler,
 ) {
+	generalLimiter := limiter.New(limiter.Config{
+		Max:        60,
+		Expiration: 1 * time.Minute,
+		KeyGenerator: func(c fiber.Ctx) string {
+			return c.IP()
+		},
+		LimitReached: func(c fiber.Ctx) error {
+			return c.Status(fiber.StatusTooManyRequests).JSON(common.ErrorResponse{
+				StatusCode: fiber.StatusTooManyRequests,
+				Message:    "Too many requests, please slow down.",
+			})
+		},
+	})
+
+	authLimiter := limiter.New(limiter.Config{
+		Max:        5,
+		Expiration: 1 * time.Minute,
+		KeyGenerator: func(c fiber.Ctx) string {
+			return c.IP()
+		},
+		LimitReached: func(c fiber.Ctx) error {
+			return c.Status(fiber.StatusTooManyRequests).JSON(common.ErrorResponse{
+				StatusCode: fiber.StatusTooManyRequests,
+				Message:    "Too many login attempts. Please wait before trying again.",
+			})
+		},
+	})
+
 	// Middleware
-	api := app.Group("/api", logger.New())
+	api := app.Group("/api", logger.New(), generalLimiter)
 
 	// Auth
-	authGroup := api.Group("/auth")
+	authGroup := api.Group("/auth", authLimiter)
 	authGroup.Post("/login", authH.Login)
 	authGroup.Post("/register", authH.Register)
 
