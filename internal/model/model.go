@@ -6,7 +6,7 @@ import (
 	"gorm.io/gorm"
 )
 
-// NOTE: Roles: employee, customer, admin
+// User with roles: employee, customer, admin
 type User struct {
 	gorm.Model
 	Name     string `gorm:"uniqueIndex;not null" json:"name"`
@@ -27,7 +27,7 @@ type Service struct {
 	Users []*User `gorm:"many2many:user_services"`
 }
 
-// Status: 'booked', 'cancelled', 'completed'
+// Booking Status: 'booked', 'cancelled', 'completed'
 // Creating unique index for EmployeeID and BookingDate
 type Booking struct {
 	gorm.Model
@@ -42,7 +42,7 @@ type Booking struct {
 	Service     Service `gorm:"foreignKey:ServiceID"`
 }
 
-// Base schedule by week day
+// Schedule Base schedule by week day
 // ignore date for StartTime and EndTime, use only the time
 type Schedule struct {
 	gorm.Model
@@ -53,7 +53,7 @@ type Schedule struct {
 	Employee   User      `gorm:"foreignKey:EmployeeID"`
 }
 
-// Used for schedule exceptions
+// ScheduleOverride  for schedule exceptions
 type ScheduleOverride struct {
 	gorm.Model
 	EmployeeID  uint      `gorm:"not null"`
@@ -66,8 +66,6 @@ type ScheduleOverride struct {
 	Employee    User `gorm:"foreignKey:EmployeeID"`
 }
 
-// Used to check daily availability, whem registering a shift,
-// you must check if it is available with this table
 type TimeSlot struct {
 	gorm.Model
 	EmployeeID  uint

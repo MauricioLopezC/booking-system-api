@@ -1,3 +1,4 @@
+// Package schedule
 package schedule
 
 import (
@@ -52,14 +53,14 @@ func (h *ScheduleHandler) CreateMySchedule(c fiber.Ctx) error {
 				Message:    err.Error(),
 			})
 		}
-		//other errors
+		// other errors
 		return common.NewInternalServerErrorResponse(c)
 	}
 
 	return c.Status(fiber.StatusCreated).JSON(schedule)
 }
 
-// admin only
+// FindAll admin only
 func (h *ScheduleHandler) FindAll(c fiber.Ctx) error {
 	limit := fiber.Query[int](c, "limit")
 	if limit <= 0 {
@@ -88,7 +89,7 @@ func (h *ScheduleHandler) FindAll(c fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(allSchedueles)
 }
 
-// Admin only
+// FindOne Admin only
 func (h *ScheduleHandler) FindOne(c fiber.Ctx) error {
 	id, err := fiber.Params[int](c, "id"), error(nil)
 	if err != nil || id <= 0 {
@@ -111,7 +112,7 @@ func (h *ScheduleHandler) FindOne(c fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(schedule)
 }
 
-// Use in endpoint: GET /me/schedules
+// FindMySchedules use in endpoint: GET /me/schedules
 // there is no need for paginate because employee needs to see all his schedules
 func (h *ScheduleHandler) FindMySchedules(c fiber.Ctx) error {
 	authUser, err := utils.GetAuthUser(c)

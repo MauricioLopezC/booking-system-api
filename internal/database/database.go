@@ -1,3 +1,4 @@
+// Package database
 package database
 
 import (
@@ -16,9 +17,7 @@ type Dbinstance struct {
 
 var DB Dbinstance
 
-// connectDb
-func ConnectDb() {
-
+func ConnectDB() {
 	dsn := fmt.Sprintf(
 		"host=localhost port=%s user=%s password=%s dbname=%s sslmode=disable",
 		config.Config("DB_PORT"),

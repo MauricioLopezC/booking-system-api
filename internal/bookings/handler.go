@@ -1,3 +1,4 @@
+// Package bookings
 package bookings
 
 import (

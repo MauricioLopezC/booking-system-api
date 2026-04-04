@@ -17,7 +17,7 @@ import (
 func main() {
 	config.Load()
 	app := fiber.New()
-	database.ConnectDb()
+	database.ConnectDB()
 	database.Migrate(
 		&model.User{},
 		&model.Service{},
@@ -27,7 +27,7 @@ func main() {
 		&model.TimeSlot{},
 	)
 
-	//handles and servicies
+	// handles and servicies
 	scheduleService := schedule.NewScheduleService(database.DB.Db)
 	scheduleHandler := schedule.NewScheduleHandler(scheduleService)
 

@@ -1,3 +1,4 @@
+// Package slots
 package slots
 
 import (
