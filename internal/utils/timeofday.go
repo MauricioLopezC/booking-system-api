@@ -27,7 +27,7 @@ func ParseTimeOfDay(s string) (TimeOfDay, error) {
 	}
 
 	if h < 0 || h > 23 || m < 0 || m > 59 || sec < 0 || sec > 59 {
-		return TimeOfDay{}, fmt.Errorf("Invalid time")
+		return TimeOfDay{}, fmt.Errorf("invalid time")
 	}
 
 	return TimeOfDay{Hour: h, Minute: m, Second: sec}, nil
