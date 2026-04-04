@@ -126,7 +126,7 @@ func (h *ScheduleExHandler) FindMyScheduleExs(c fiber.Ctx) error {
 }
 
 func (h *ScheduleExHandler) DeleteMyScheduleEx(c fiber.Ctx) error {
-	id, _ := fiber.Params[int](c, "id"), error(nil)
+	id := fiber.Params[int](c, "id")
 	if id <= 0 {
 		return c.Status(fiber.StatusBadRequest).JSON(common.ErrorResponse{
 			StatusCode: fiber.StatusBadRequest,

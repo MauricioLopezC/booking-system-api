@@ -91,8 +91,8 @@ func (h *ScheduleHandler) FindAll(c fiber.Ctx) error {
 
 // FindOne Admin only
 func (h *ScheduleHandler) FindOne(c fiber.Ctx) error {
-	id, err := fiber.Params[int](c, "id"), error(nil)
-	if err != nil || id <= 0 {
+	id := fiber.Params[int](c, "id")
+	if id <= 0 {
 		return c.Status(fiber.StatusBadRequest).JSON(common.ErrorResponse{
 			StatusCode: fiber.StatusBadRequest,
 			Message:    "Numeric string greater than 0 is expected",
@@ -132,8 +132,8 @@ func (h *ScheduleHandler) FindMySchedules(c fiber.Ctx) error {
 }
 
 func (h *ScheduleHandler) DeleteMySchedules(c fiber.Ctx) error {
-	id, err := fiber.Params[int](c, "id"), error(nil)
-	if err != nil || id <= 0 {
+	id := fiber.Params[int](c, "id")
+	if id <= 0 {
 		return c.Status(fiber.StatusBadRequest).JSON(common.ErrorResponse{
 			StatusCode: fiber.StatusBadRequest,
 			Message:    "Numeric string greater than 0 is expected",
