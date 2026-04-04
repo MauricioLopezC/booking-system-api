@@ -26,7 +26,7 @@ func (h *AuthHandler) Login(c fiber.Ctx) error {
 	if err := utils.Validate(&loginDto); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(common.ErrorResponse{
 			StatusCode: fiber.StatusBadRequest,
-			Message:    err.Message,
+			Message:    err.Error(),
 		})
 	}
 
@@ -60,7 +60,7 @@ func (h *AuthHandler) Register(c fiber.Ctx) error {
 	if err := utils.Validate(userDto); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(common.ErrorResponse{
 			StatusCode: fiber.StatusBadRequest,
-			Message:    err.Message,
+			Message:    err.Error(),
 		})
 	}
 

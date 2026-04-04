@@ -25,9 +25,9 @@ func (h *ScheduleHandler) CreateMySchedule(c fiber.Ctx) error {
 	}
 
 	if err := utils.Validate(scheduleDto); err != nil {
-		return c.Status(err.Code).JSON(common.ErrorResponse{
-			StatusCode: uint(err.Code),
-			Message:    err.Message,
+		return c.Status(fiber.StatusBadRequest).JSON(common.ErrorResponse{
+			StatusCode: uint(fiber.StatusBadRequest),
+			Message:    err.Error(),
 		})
 	}
 
