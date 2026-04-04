@@ -31,10 +31,10 @@ func jwtError(c fiber.Ctx, err error) error {
 	})
 }
 
-// Use this middleware after the Protected middleware to extract the JWT claims.
+// RoleMiddleware Use this middleware after the Protected middleware to extract the JWT claims.
 func RoleMiddleware(allowedRoles ...string) fiber.Handler {
 	return func(c fiber.Ctx) error {
-		//get user info
+		// get user info
 		user, ok1 := c.Locals("user").(*jwt.Token)
 		claims, ok2 := user.Claims.(jwt.MapClaims)
 		if !ok1 || !ok2 {

@@ -34,8 +34,7 @@ func checkPasswordHash(password string, hashedPassword string) bool {
 }
 
 func (as *AuthService) Login(loginDto LoginDto) (*LoginResponse, error) {
-
-	//get user by email
+	// get user by email
 	var user model.User
 	if result := as.db.Where("email = ?", loginDto.Email).First(&user); result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
@@ -44,14 +43,14 @@ func (as *AuthService) Login(loginDto LoginDto) (*LoginResponse, error) {
 		return nil, result.Error
 	}
 
-	//check password
+	// check password
 	if !checkPasswordHash(loginDto.Password, user.Password) {
 		return nil, fmt.Errorf("%w: %s", common.ErrUnauthorized, "Wrong password!")
 	}
 
 	token := jwt.New(jwt.SigningMethodHS256)
 
-	//claims are token payload
+	// claims are token payload
 	claims := token.Claims.(jwt.MapClaims)
 	claims["email"] = user.Email
 	claims["user_id"] = user.ID
@@ -60,7 +59,7 @@ func (as *AuthService) Login(loginDto LoginDto) (*LoginResponse, error) {
 
 	t, err := token.SignedString([]byte(config.Config("SECRET")))
 	if err != nil {
-		return nil, errors.New("Error: try again later")
+		return nil, errors.New("error: try again later")
 	}
 
 	userResponse := UserResponse{
@@ -82,7 +81,7 @@ func hashPassword(password string) (string, error) {
 }
 
 func (as *AuthService) Register(userDto CreateUserDto) (*model.User, error) {
-	//check if user already exists
+	// check if user already exists
 	var existingUser model.User
 	userResult := as.db.Where("email = ?", userDto.Email).First(&existingUser)
 	if errors.Is(userResult.Error, gorm.ErrDuplicatedKey) {
@@ -91,7 +90,7 @@ func (as *AuthService) Register(userDto CreateUserDto) (*model.User, error) {
 
 	hash, err := hashPassword(userDto.Password)
 	if err != nil {
-		return nil, errors.New("Couldn't hash password")
+		return nil, errors.New("couldn't hash password")
 	}
 
 	newUser := model.User{
@@ -105,7 +104,7 @@ func (as *AuthService) Register(userDto CreateUserDto) (*model.User, error) {
 		if errors.Is(result.Error, gorm.ErrDuplicatedKey) {
 			return nil, fmt.Errorf("%w: %s", common.ErrConflict, "email, username or name already exists")
 		}
-		return nil, errors.New("Error creating user!")
+		return nil, errors.New("error creating user")
 	}
 
 	return &newUser, nil

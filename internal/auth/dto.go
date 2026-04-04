@@ -8,7 +8,7 @@ type LoginDto struct {
 type CreateUserDto struct {
 	Username string `json:"username" validate:"required"`
 	Email    string `json:"email" validate:"required,email"`
-	Password string `json:"password" validate:"required"`
+	Password string `json:"password" validate:"required,min=8,max=72"`
 	Phone    string `json:"phone" validate:"required,e164"`
 }
 
