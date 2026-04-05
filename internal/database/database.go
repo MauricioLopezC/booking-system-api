@@ -19,7 +19,8 @@ var DB Dbinstance
 
 func ConnectDB() {
 	dsn := fmt.Sprintf(
-		"host=localhost port=%s user=%s password=%s dbname=%s sslmode=disable",
+		"host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
+		config.Config("DB_HOST"),
 		config.Config("DB_PORT"),
 		config.Config("DB_USER"),
 		config.Config("DB_PASSWORD"),
