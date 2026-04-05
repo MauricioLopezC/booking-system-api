@@ -12,7 +12,8 @@ type AuthUser struct {
 }
 
 func GetAuthUser(c fiber.Ctx) (*AuthUser, error) {
-	//get user data from context
+	// get user data from context
+	// TODO: FIX!!!!
 	userToken, ok1 := c.Locals("user").(*jwt.Token)
 	claims, ok2 := userToken.Claims.(jwt.MapClaims)
 	idF, ok3 := claims["user_id"].(float64)
