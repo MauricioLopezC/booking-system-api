@@ -19,9 +19,10 @@ func NewSlotsService(db *gorm.DB) *SlotsService {
 
 type SlotMap map[string][]time.Time // fecha en formato YYYY-MM-DD
 
-func (ss *SlotsService) FindAvailableSlots(employeeID, serviceID uint, startDate, endDate time.Time) (SlotMap, error) {
+const MaxDaysRange = 14
 
-	if endDate.After(startDate.AddDate(0, 0, 14)) {
+func (ss *SlotsService) FindAvailableSlots(employeeID, serviceID uint, startDate, endDate time.Time) (SlotMap, error) {
+	if endDate.After(startDate.AddDate(0, 0, MaxDaysRange)) {
 		return nil, fmt.Errorf("%w: %s", common.ErrValidation, "endDate must no exceed two weeks from today")
 	}
 
@@ -49,7 +50,7 @@ func (ss *SlotsService) FindAvailableSlots(employeeID, serviceID uint, startDate
 		return nil, result.Error
 	}
 
-	//index schedules by week day for find later
+	// index schedules by week day for find later
 	weeklySchedule := make(map[time.Weekday][]model.Schedule)
 	for _, schedule := range schedules {
 		fmt.Println(schedule.StartTime.Zone())
@@ -57,7 +58,7 @@ func (ss *SlotsService) FindAvailableSlots(employeeID, serviceID uint, startDate
 		weeklySchedule[weekday] = append(weeklySchedule[weekday], schedule)
 	}
 
-	//step 3. get schedules exceptions/overrides in date range
+	// step 3. get schedules exceptions/overrides in date range
 	exceptions := []model.ScheduleOverride{}
 
 	if startDate.Equal(endDate) {
@@ -79,7 +80,7 @@ func (ss *SlotsService) FindAvailableSlots(employeeID, serviceID uint, startDate
 		exceptionMap[key] = append(exceptionMap[key], ex)
 	}
 
-	//step 4. get existing bookings
+	// step 4. get existing bookings
 	bookings := []model.Booking{}
 	if startDate.Equal(endDate) {
 		result := ss.db.Preload("Service").Where("employee_id = ? AND booking_date BETWEEN ? AND ?", employeeID, startDate, endDate.AddDate(0, 0, 1)).Find(&bookings)
@@ -93,14 +94,14 @@ func (ss *SlotsService) FindAvailableSlots(employeeID, serviceID uint, startDate
 		}
 	}
 
-	//Indexing existing bookings
+	// Indexing existing bookings
 	bookingsMap := make(map[string][]model.Booking)
 	for _, booking := range bookings {
 		key := booking.BookingDate.Format("2006-01-02")
 		bookingsMap[key] = append(bookingsMap[key], booking)
 	}
 
-	//step 5 loop over each range day
+	// step 5 loop over each range day
 	slotMap := ss.getSlots(startDate, endDate, service, weeklySchedule, exceptionMap, bookingsMap)
 
 	return slotMap, nil
@@ -127,14 +128,14 @@ func (ss *SlotsService) getSlots(
 
 		var dailySlots []time.Time
 		for _, schedule := range dailySchedule {
-			//schedule time interval, for example [start, end] = [08:00, 14:00], [start, end] = [16:00, 20:00]
+			// schedule time interval, for example [start, end] = [08:00, 14:00], [start, end] = [16:00, 20:00]
 			start := time.Date(day.Year(), day.Month(), day.Day(), schedule.StartTime.Hour(), schedule.StartTime.Minute(), 0, 0, time.Local)
 			end := time.Date(day.Year(), day.Month(), day.Day(), schedule.EndTime.Hour(), schedule.EndTime.Minute(), 0, 0, time.Local)
 			for current := start; current.Add(duration).Before(end) || current.Add(duration).Equal(end); current = current.Add(duration) {
-				//current is the start of current slot for example (duration 30min);  08:00, 08:30, 09:00, ...
+				// current is the start of current slot for example (duration 30min);  08:00, 08:30, 09:00, ...
 				blocked := false
 
-				//check exceptions
+				// check exceptions
 				for _, ex := range dayExceptions {
 					if ex.AllDay {
 						blocked = true
@@ -147,7 +148,7 @@ func (ss *SlotsService) getSlots(
 					}
 				}
 
-				//check bookings
+				// check bookings
 				for _, booking := range dayBookings {
 					existingStart := booking.BookingDate
 					existingEnd := booking.BookingDate.Add(time.Duration(booking.Service.DurationMinutes) * time.Minute)

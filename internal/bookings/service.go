@@ -21,6 +21,8 @@ func NewBookingsService(db *gorm.DB, slotsS *slots.SlotsService) *BookingsServic
 	return &BookingsService{db: db, slotsService: slotsS}
 }
 
+const MaxBookingDateDays = 14
+
 func (bs *BookingsService) CreateBooking(bookingDto BookingDto, customerID uint) (*model.Booking, error) {
 	booking := model.Booking{
 		CustomerID:  customerID,
@@ -37,7 +39,7 @@ func (bs *BookingsService) CreateBooking(bookingDto BookingDto, customerID uint)
 		return nil, fmt.Errorf("%w: %s", common.ErrValidation, "BookingDate must be greater than the current datetime")
 	}
 
-	if !booking.BookingDate.Before(now.AddDate(0, 0, 14)) {
+	if !booking.BookingDate.Before(now.AddDate(0, 0, MaxBookingDateDays)) {
 		return nil, fmt.Errorf("%w: %s", common.ErrValidation, "BookingDate must no exceed 2 weks")
 	}
 
