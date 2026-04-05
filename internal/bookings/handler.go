@@ -18,6 +18,19 @@ func NewBookingsHandler(bookingsSerice *BookingsService) *BookingsHandler {
 	return &BookingsHandler{bookingsService: bookingsSerice}
 }
 
+// CreateMyBooking godoc
+// @Summary      Create a booking
+// @Tags         bookings
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        body  body      BookingDto            true  "Booking data"
+// @Success      201   {object}  model.BookingResponse
+// @Failure      400   {object}  common.ErrorResponse
+// @Failure      401   {object}  common.ErrorResponse
+// @Failure      404   {object}  common.ErrorResponse
+// @Failure      409   {object}  common.ErrorResponse
+// @Router       /me/bookings [post]
 func (h *BookingsHandler) CreateMyBooking(c fiber.Ctx) error {
 	bookingDto := new(BookingDto)
 
@@ -67,6 +80,18 @@ func (h *BookingsHandler) CreateMyBooking(c fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(newBooking)
 }
 
+// FindAll godoc
+// @Summary      Get all bookings (admin)
+// @Tags         bookings
+// @Produce      json
+// @Security     BearerAuth
+// @Param        limit    query     int     true   "Items per page"
+// @Param        page     query     int     true   "Page number"
+// @Param        orderBy  query     string  false  "Sort field: booking_date | created_at"
+// @Success      200  {object}  model.AllBookingsSwaggerResponse
+// @Failure      400  {object}  common.ErrorResponse
+// @Failure      401  {object}  common.ErrorResponse
+// @Router       /bookings [get]
 func (h *BookingsHandler) FindAll(c fiber.Ctx) error {
 	limit := fiber.Query[int](c, "limit")
 	if limit <= 0 {
@@ -100,6 +125,17 @@ func (h *BookingsHandler) FindAll(c fiber.Ctx) error {
 	return c.Status(200).JSON(allBookingsResponse)
 }
 
+// FindOne godoc
+// @Summary      Get booking by ID (admin)
+// @Tags         bookings
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id   path      int  true  "Booking ID"
+// @Success      200  {object}  model.BookingResponse
+// @Failure      400  {object}  common.ErrorResponse
+// @Failure      401  {object}  common.ErrorResponse
+// @Failure      404  {object}  common.ErrorResponse
+// @Router       /bookings/{id} [get]
 // FindOne ADMIN ONLY
 func (h *BookingsHandler) FindOne(c fiber.Ctx) error {
 	id := fiber.Params[int](c, "id")
@@ -124,6 +160,18 @@ func (h *BookingsHandler) FindOne(c fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(booking)
 }
 
+// FindMyBookings godoc
+// @Summary      Get current user bookings
+// @Tags         bookings
+// @Produce      json
+// @Security     BearerAuth
+// @Param        limit    query     int     false  "Items per page (default 10)"
+// @Param        page     query     int     false  "Page number (default 1)"
+// @Param        orderBy  query     string  false  "Sort field: booking_date | created_at"
+// @Success      200  {object}  model.AllBookingsSwaggerResponse
+// @Failure      400  {object}  common.ErrorResponse
+// @Failure      401  {object}  common.ErrorResponse
+// @Router       /me/bookings [get]
 func (h *BookingsHandler) FindMyBookings(c fiber.Ctx) error {
 	limit := fiber.Query(c, "limit", 10)
 	if limit <= 0 {
@@ -170,6 +218,18 @@ func (h *BookingsHandler) FindMyBookings(c fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(allBookingsResponse)
 }
 
+// CancelBooking godoc
+// @Summary      Cancel a booking
+// @Tags         bookings
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id   path      int  true  "Booking ID"
+// @Success      200  {object}  model.BookingResponse
+// @Failure      400  {object}  common.ErrorResponse
+// @Failure      401  {object}  common.ErrorResponse
+// @Failure      404  {object}  common.ErrorResponse
+// @Failure      409  {object}  common.ErrorResponse
+// @Router       /me/bookings/{id}/cancel [post]
 func (h *BookingsHandler) CancelBooking(c fiber.Ctx) error {
 	// Get booking id
 	id := fiber.Params[int](c, "id")

@@ -17,6 +17,17 @@ func NewAuthHandler(as *AuthService) *AuthHandler {
 	return &AuthHandler{authService: as}
 }
 
+// Login godoc
+// @Summary      Login user
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        body  body      LoginDto              true  "Login credentials"
+// @Success      200   {object}  LoginResponse
+// @Failure      400   {object}  common.ErrorResponse
+// @Failure      401   {object}  common.ErrorResponse
+// @Failure      404   {object}  common.ErrorResponse
+// @Router       /auth/login [post]
 func (h *AuthHandler) Login(c fiber.Ctx) error {
 	var loginDto LoginDto
 	if err := c.Bind().Body(&loginDto); err != nil {
@@ -50,6 +61,16 @@ func (h *AuthHandler) Login(c fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(loginResponse)
 }
 
+// Register godoc
+// @Summary      Register a new user
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        body  body      CreateUserDto         true  "User data"
+// @Success      201   {object}  UserResponse
+// @Failure      400   {object}  common.ErrorResponse
+// @Failure      409   {object}  common.ErrorResponse
+// @Router       /auth/register [post]
 func (h *AuthHandler) Register(c fiber.Ctx) error {
 	userDto := new(CreateUserDto)
 

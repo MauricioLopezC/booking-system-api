@@ -17,6 +17,18 @@ func NewScheduleHandler(scheduleService *ScheduleService) *ScheduleHandler {
 	return &ScheduleHandler{scheduleService: scheduleService}
 }
 
+// CreateMySchedule godoc
+// @Summary      Create a schedule entry
+// @Tags         schedules
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        body  body      CreateScheduleDto     true  "Schedule data"
+// @Success      201   {object}  model.ScheduleResponse
+// @Failure      400   {object}  common.ErrorResponse
+// @Failure      401   {object}  common.ErrorResponse
+// @Failure      409   {object}  common.ErrorResponse
+// @Router       /me/schedules [post]
 func (h *ScheduleHandler) CreateMySchedule(c fiber.Ctx) error {
 	scheduleDto := new(CreateScheduleDto)
 
@@ -60,6 +72,18 @@ func (h *ScheduleHandler) CreateMySchedule(c fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(schedule)
 }
 
+// FindAll godoc
+// @Summary      Get all schedules (admin)
+// @Tags         schedules
+// @Produce      json
+// @Security     BearerAuth
+// @Param        limit    query     int     true   "Items per page"
+// @Param        page     query     int     true   "Page number"
+// @Param        orderBy  query     string  false  "Sort field: updated_at | created_at"
+// @Success      200  {array}   model.ScheduleResponse
+// @Failure      400  {object}  common.ErrorResponse
+// @Failure      401  {object}  common.ErrorResponse
+// @Router       /schedules [get]
 // FindAll admin only
 func (h *ScheduleHandler) FindAll(c fiber.Ctx) error {
 	limit := fiber.Query[int](c, "limit")
@@ -89,6 +113,17 @@ func (h *ScheduleHandler) FindAll(c fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(allSchedueles)
 }
 
+// FindOne godoc
+// @Summary      Get schedule by ID (admin)
+// @Tags         schedules
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id   path      int  true  "Schedule ID"
+// @Success      200  {object}  model.ScheduleResponse
+// @Failure      400  {object}  common.ErrorResponse
+// @Failure      401  {object}  common.ErrorResponse
+// @Failure      404  {object}  common.ErrorResponse
+// @Router       /schedules/{id} [get]
 // FindOne Admin only
 func (h *ScheduleHandler) FindOne(c fiber.Ctx) error {
 	id := fiber.Params[int](c, "id")
@@ -112,6 +147,14 @@ func (h *ScheduleHandler) FindOne(c fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(schedule)
 }
 
+// FindMySchedules godoc
+// @Summary      Get current user schedules
+// @Tags         schedules
+// @Produce      json
+// @Security     BearerAuth
+// @Success      200  {array}   model.ScheduleResponse
+// @Failure      401  {object}  common.ErrorResponse
+// @Router       /me/schedules [get]
 // FindMySchedules use in endpoint: GET /me/schedules
 // there is no need for paginate because employee needs to see all his schedules
 func (h *ScheduleHandler) FindMySchedules(c fiber.Ctx) error {
@@ -131,6 +174,17 @@ func (h *ScheduleHandler) FindMySchedules(c fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(schedules)
 }
 
+// DeleteMySchedules godoc
+// @Summary      Delete a schedule entry
+// @Tags         schedules
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id   path      int  true  "Schedule ID"
+// @Success      200  {object}  model.ScheduleResponse
+// @Failure      400  {object}  common.ErrorResponse
+// @Failure      401  {object}  common.ErrorResponse
+// @Failure      404  {object}  common.ErrorResponse
+// @Router       /me/schedules/{id} [delete]
 func (h *ScheduleHandler) DeleteMySchedules(c fiber.Ctx) error {
 	id := fiber.Params[int](c, "id")
 	if id <= 0 {

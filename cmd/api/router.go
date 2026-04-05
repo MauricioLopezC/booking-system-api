@@ -11,6 +11,7 @@ import (
 	"github.com/MauricioLopezC/ReservationSystem/internal/services"
 	"github.com/MauricioLopezC/ReservationSystem/internal/slots"
 	"github.com/MauricioLopezC/ReservationSystem/internal/user"
+	swaggo "github.com/gofiber/contrib/v3/swaggo"
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/middleware/limiter"
 	"github.com/gofiber/fiber/v3/middleware/logger"
@@ -53,6 +54,9 @@ func SetupRoutes(
 			})
 		},
 	})
+
+	// Swagger UI (no auth, no rate limit)
+	app.Get("/swagger/*", swaggo.HandlerDefault)
 
 	// Middleware
 	api := app.Group("/api", logger.New(), generalLimiter)

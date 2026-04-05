@@ -17,6 +17,17 @@ func NewSlotsHandler(slotsService *SlotsService) *SlotsHandler {
 	return &SlotsHandler{slotsService: slotsService}
 }
 
+// FindAvailableSlots godoc
+// @Summary      Get available time slots
+// @Tags         slots
+// @Produce      json
+// @Param        serviceId   query     int     true   "Service ID"
+// @Param        employeeId  query     int     true   "Employee ID"
+// @Param        endDate     query     string  true   "End date (YYYY-MM-DD)"
+// @Success      200  {array}   model.TimeSlotResponse
+// @Failure      400  {object}  common.ErrorResponse
+// @Failure      409  {object}  common.ErrorResponse
+// @Router       /available-slots [get]
 func (h *SlotsHandler) FindAvailableSlots(c fiber.Ctx) error {
 	serviceID := fiber.Query[int](c, "serviceId", 0)
 	if serviceID <= 0 {

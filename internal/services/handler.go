@@ -18,6 +18,17 @@ func NewServicesHandler(servicesService *ServicesService) *ServicesHandler {
 	return &ServicesHandler{servicesService: servicesService}
 }
 
+// Create godoc
+// @Summary      Create a service
+// @Tags         services
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        body  body      CreateServiceDto      true  "Service data"
+// @Success      200   {object}  model.ServiceResponse
+// @Failure      400   {object}  common.ErrorResponse
+// @Failure      401   {object}  common.ErrorResponse
+// @Router       /services [post]
 // Use in POST /service endpoint with required roles: admin
 func (h *ServicesHandler) Create(c fiber.Ctx) error {
 	serviceDto := new(CreateServiceDto)
@@ -45,6 +56,16 @@ func (h *ServicesHandler) Create(c fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(service)
 }
 
+// FindAll godoc
+// @Summary      Get all services
+// @Tags         services
+// @Produce      json
+// @Param        limit    query     int     true   "Items per page"
+// @Param        page     query     int     true   "Page number"
+// @Param        orderBy  query     string  false  "Sort field: booking_date | created_at"
+// @Success      200  {array}   model.ServiceResponse
+// @Failure      400  {object}  common.ErrorResponse
+// @Router       /services [get]
 // Use in GET /services endpoint, public route, use employeeId optional
 // param to get the employee services
 func (h *ServicesHandler) FindAll(c fiber.Ctx) error {
@@ -78,6 +99,19 @@ func (h *ServicesHandler) FindAll(c fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(allServicesResponse)
 }
 
+// Update godoc
+// @Summary      Update a service
+// @Tags         services
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id    path      int               true  "Service ID"
+// @Param        body  body      UpdateServiceDto  true  "Fields to update"
+// @Success      200   {object}  model.ServiceResponse
+// @Failure      400   {object}  common.ErrorResponse
+// @Failure      401   {object}  common.ErrorResponse
+// @Failure      404   {object}  common.ErrorResponse
+// @Router       /services/{id} [patch]
 func (h *ServicesHandler) Update(c fiber.Ctx) error {
 	id := fiber.Params[int](c, "id")
 	if id <= 0 {
@@ -109,6 +143,17 @@ func (h *ServicesHandler) Update(c fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(updatedService)
 }
 
+// Delete godoc
+// @Summary      Delete a service
+// @Tags         services
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id   path      int  true  "Service ID"
+// @Success      200  {object}  model.ServiceResponse
+// @Failure      400  {object}  common.ErrorResponse
+// @Failure      401  {object}  common.ErrorResponse
+// @Failure      404  {object}  common.ErrorResponse
+// @Router       /services/{id} [delete]
 func (h *ServicesHandler) Delete(c fiber.Ctx) error {
 	id := fiber.Params[int](c, "id")
 	if id <= 0 {

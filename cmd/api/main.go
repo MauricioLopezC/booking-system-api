@@ -12,7 +12,20 @@ import (
 	"github.com/MauricioLopezC/ReservationSystem/internal/slots"
 	"github.com/MauricioLopezC/ReservationSystem/internal/user"
 	"github.com/gofiber/fiber/v3"
+
+	_ "github.com/MauricioLopezC/ReservationSystem/docs"
 )
+
+// @title           Reservation System API
+// @version         1.0
+// @description     API for managing reservations, schedules, and services.
+
+// @host      localhost:3000
+// @BasePath  /api
+
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
 
 func main() {
 	config.Load()

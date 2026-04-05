@@ -17,6 +17,18 @@ func NewUsersHandler(s *UsersService) *UsersHandler {
 	return &UsersHandler{usersService: s}
 }
 
+// FindAll godoc
+// @Summary      Get all users (admin)
+// @Tags         users
+// @Produce      json
+// @Security     BearerAuth
+// @Param        limit    query     int     true   "Items per page"
+// @Param        page     query     int     true   "Page number"
+// @Param        orderBy  query     string  false  "Sort field: booking_date | created_at"
+// @Success      200  {object}  model.AllUsersSwaggerResponse
+// @Failure      400  {object}  common.ErrorResponse
+// @Failure      401  {object}  common.ErrorResponse
+// @Router       /users [get]
 func (h *UsersHandler) FindAll(c fiber.Ctx) error {
 	limit := fiber.Query[int](c, "limit", 0)
 	if limit <= 0 {
@@ -49,6 +61,17 @@ func (h *UsersHandler) FindAll(c fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(usersResponse)
 }
 
+// FindOne godoc
+// @Summary      Get user by ID (admin)
+// @Tags         users
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id   path      int  true  "User ID"
+// @Success      200  {object}  UserResponse
+// @Failure      400  {object}  common.ErrorResponse
+// @Failure      401  {object}  common.ErrorResponse
+// @Failure      404  {object}  common.ErrorResponse
+// @Router       /users/{id} [get]
 func (h *UsersHandler) FindOne(c fiber.Ctx) error {
 	id := fiber.Params[int](c, "id")
 	if id <= 0 {
@@ -79,6 +102,20 @@ func (h *UsersHandler) FindOne(c fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(userResponse)
 }
 
+// Update godoc
+// @Summary      Update a user (admin)
+// @Tags         users
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id    path      int            true  "User ID"
+// @Param        body  body      UpdateUserDto  true  "Fields to update"
+// @Success      200   {object}  UserResponse
+// @Failure      400   {object}  common.ErrorResponse
+// @Failure      401   {object}  common.ErrorResponse
+// @Failure      404   {object}  common.ErrorResponse
+// @Failure      409   {object}  common.ErrorResponse
+// @Router       /users/{id} [patch]
 func (h *UsersHandler) Update(c fiber.Ctx) error {
 	id := fiber.Params[int](c, "id")
 	if id <= 0 {
@@ -123,6 +160,17 @@ func (h *UsersHandler) Update(c fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(userResponse)
 }
 
+// Delete godoc
+// @Summary      Delete a user (admin)
+// @Tags         users
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id   path      int  true  "User ID"
+// @Success      200  {object}  UserResponse
+// @Failure      400  {object}  common.ErrorResponse
+// @Failure      401  {object}  common.ErrorResponse
+// @Failure      404  {object}  common.ErrorResponse
+// @Router       /users/{id} [delete]
 func (h *UsersHandler) Delete(c fiber.Ctx) error {
 	id := fiber.Params[int](c, "id")
 	if id <= 0 {
@@ -153,6 +201,19 @@ func (h *UsersHandler) Delete(c fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(userResponse)
 }
 
+// AssignServiceToMe godoc
+// @Summary      Assign services to current user
+// @Tags         users
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        body  body      ConnectServicesToUserDto  true  "Service IDs to assign"
+// @Success      201   {object}  model.UserResponse
+// @Failure      400   {object}  common.ErrorResponse
+// @Failure      401   {object}  common.ErrorResponse
+// @Failure      404   {object}  common.ErrorResponse
+// @Failure      409   {object}  common.ErrorResponse
+// @Router       /me/services [post]
 func (h *UsersHandler) AssignServiceToMe(c fiber.Ctx) error {
 	var body ConnectServicesToUserDto
 	if err := c.Bind().Body(&body); err != nil {

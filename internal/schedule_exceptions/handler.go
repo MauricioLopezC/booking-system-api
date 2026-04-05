@@ -17,6 +17,18 @@ func NewScheduleExHandler(ss *ScheduleExService) *ScheduleExHandler {
 	return &ScheduleExHandler{scheduleExService: ss}
 }
 
+// CreateMyScheduleEx godoc
+// @Summary      Create a schedule exception
+// @Tags         schedule-exceptions
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        body  body      CreateScheduleExDto   true  "Schedule exception data"
+// @Success      201   {object}  model.ScheduleOverrideResponse
+// @Failure      400   {object}  common.ErrorResponse
+// @Failure      401   {object}  common.ErrorResponse
+// @Failure      409   {object}  common.ErrorResponse
+// @Router       /me/schedule-exceptions [post]
 func (h *ScheduleExHandler) CreateMyScheduleEx(c fiber.Ctx) error {
 	scheduleDto := new(CreateScheduleExDto)
 
@@ -125,6 +137,17 @@ func (h *ScheduleExHandler) FindMyScheduleExs(c fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(schedules)
 }
 
+// DeleteMyScheduleEx godoc
+// @Summary      Delete a schedule exception
+// @Tags         schedule-exceptions
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id   path      int  true  "Schedule exception ID"
+// @Success      200  {object}  model.ScheduleOverrideResponse
+// @Failure      400  {object}  common.ErrorResponse
+// @Failure      401  {object}  common.ErrorResponse
+// @Failure      404  {object}  common.ErrorResponse
+// @Router       /me/schedule-exceptions/{id} [delete]
 func (h *ScheduleExHandler) DeleteMyScheduleEx(c fiber.Ctx) error {
 	id := fiber.Params[int](c, "id")
 	if id <= 0 {
