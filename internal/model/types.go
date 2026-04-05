@@ -1,6 +1,5 @@
 package model
 
-// USER ROLE
 type UserRole int
 
 const (
@@ -19,7 +18,6 @@ func (ur UserRole) String() string {
 	return roleName[ur]
 }
 
-// BOOKING STATUS
 type BookingStatus int
 
 const (
