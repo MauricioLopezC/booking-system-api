@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"github.com/MauricioLopezC/ReservationSystem/internal/common"
+	"github.com/MauricioLopezC/ReservationSystem/internal/model"
 	"github.com/MauricioLopezC/ReservationSystem/internal/utils"
 	"github.com/gofiber/fiber/v3"
 )
@@ -69,7 +70,7 @@ func (h *ScheduleHandler) CreateMySchedule(c fiber.Ctx) error {
 		return common.NewInternalServerErrorResponse(c)
 	}
 
-	return c.Status(fiber.StatusCreated).JSON(schedule)
+	return c.Status(fiber.StatusCreated).JSON(schedule.ToResponse())
 }
 
 // FindAll godoc
@@ -110,7 +111,10 @@ func (h *ScheduleHandler) FindAll(c fiber.Ctx) error {
 	orderBy, _ = utils.ParseSortParam(orderBy, allowedFields)
 
 	allSchedueles, _ := h.scheduleService.FindAll(limit, page, orderBy)
-	return c.Status(fiber.StatusOK).JSON(allSchedueles)
+	return c.Status(fiber.StatusOK).JSON(model.AllSchedulesSwaggerResponse{
+		Data:     model.SchedulesToResponse(allSchedueles.Data),
+		Metadata: model.PaginationMetadata{TotalItems: allSchedueles.Metadata.TotalItems},
+	})
 }
 
 // FindOne godoc
@@ -144,7 +148,7 @@ func (h *ScheduleHandler) FindOne(c fiber.Ctx) error {
 		}
 		return common.NewInternalServerErrorResponse(c)
 	}
-	return c.Status(fiber.StatusOK).JSON(schedule)
+	return c.Status(fiber.StatusOK).JSON(schedule.ToResponse())
 }
 
 // FindMySchedules godoc
@@ -171,7 +175,7 @@ func (h *ScheduleHandler) FindMySchedules(c fiber.Ctx) error {
 		return common.NewInternalServerErrorResponse(c)
 	}
 
-	return c.Status(fiber.StatusOK).JSON(schedules)
+	return c.Status(fiber.StatusOK).JSON(model.SchedulesToResponse(schedules))
 }
 
 // DeleteMySchedules godoc
@@ -213,5 +217,5 @@ func (h *ScheduleHandler) DeleteMySchedules(c fiber.Ctx) error {
 		return common.NewInternalServerErrorResponse(c)
 	}
 
-	return c.Status(fiber.StatusOK).JSON(schedule)
+	return c.Status(fiber.StatusOK).JSON(schedule.ToResponse())
 }

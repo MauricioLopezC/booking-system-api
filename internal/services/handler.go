@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/MauricioLopezC/ReservationSystem/internal/common"
+	"github.com/MauricioLopezC/ReservationSystem/internal/model"
 	"github.com/MauricioLopezC/ReservationSystem/internal/utils"
 	"github.com/gofiber/fiber/v3"
 )
@@ -53,7 +54,7 @@ func (h *ServicesHandler) Create(c fiber.Ctx) error {
 		fmt.Print(err.Error())
 		return common.NewInternalServerErrorResponse(c)
 	}
-	return c.Status(fiber.StatusOK).JSON(service)
+	return c.Status(fiber.StatusOK).JSON(service.ToResponse())
 }
 
 // FindAll godoc
@@ -96,7 +97,10 @@ func (h *ServicesHandler) FindAll(c fiber.Ctx) error {
 	if err != nil {
 		return common.NewInternalServerErrorResponse(c)
 	}
-	return c.Status(fiber.StatusOK).JSON(allServicesResponse)
+	return c.Status(fiber.StatusOK).JSON(model.AllServicesSwaggerResponse{
+		Data:     model.ServicesToResponse(allServicesResponse.Data),
+		Metadata: model.PaginationMetadata{TotalItems: allServicesResponse.Metadata.TotalItems},
+	})
 }
 
 // Update godoc
@@ -140,7 +144,7 @@ func (h *ServicesHandler) Update(c fiber.Ctx) error {
 		return common.NewInternalServerErrorResponse(c)
 	}
 
-	return c.Status(fiber.StatusOK).JSON(updatedService)
+	return c.Status(fiber.StatusOK).JSON(updatedService.ToResponse())
 }
 
 // Delete godoc
@@ -173,7 +177,7 @@ func (h *ServicesHandler) Delete(c fiber.Ctx) error {
 		}
 		return common.NewInternalServerErrorResponse(c)
 	}
-	return c.Status(fiber.StatusOK).JSON(deletedService)
+	return c.Status(fiber.StatusOK).JSON(deletedService.ToResponse())
 }
 
 //TODO: find user services, connect service with employee

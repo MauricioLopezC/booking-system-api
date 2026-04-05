@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/MauricioLopezC/ReservationSystem/internal/common"
-	"github.com/gofiber/fiber/v3"
+"github.com/gofiber/fiber/v3"
 )
 
 type SlotsHandler struct {
@@ -24,7 +24,7 @@ func NewSlotsHandler(slotsService *SlotsService) *SlotsHandler {
 // @Param        serviceId   query     int     true   "Service ID"
 // @Param        employeeId  query     int     true   "Employee ID"
 // @Param        endDate     query     string  true   "End date (YYYY-MM-DD)"
-// @Success      200  {array}   model.TimeSlotResponse
+// @Success      200  {object}  object  "Map of date (YYYY-MM-DD) to available time slots"
 // @Failure      400  {object}  common.ErrorResponse
 // @Failure      409  {object}  common.ErrorResponse
 // @Router       /available-slots [get]

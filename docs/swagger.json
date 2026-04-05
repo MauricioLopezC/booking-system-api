@@ -139,12 +139,9 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Map of date (YYYY-MM-DD) to available time slots",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/model.TimeSlotResponse"
-                            }
+                            "type": "object"
                         }
                     },
                     "400": {
@@ -1419,7 +1416,7 @@
                     }
                 },
                 "metadata": {
-                    "$ref": "#/definitions/model.paginationMetadata"
+                    "$ref": "#/definitions/model.PaginationMetadata"
                 }
             }
         },
@@ -1433,7 +1430,7 @@
                     }
                 },
                 "metadata": {
-                    "$ref": "#/definitions/model.paginationMetadata"
+                    "$ref": "#/definitions/model.PaginationMetadata"
                 }
             }
         },
@@ -1475,6 +1472,14 @@
                 },
                 "updatedAt": {
                     "type": "string"
+                }
+            }
+        },
+        "model.PaginationMetadata": {
+            "type": "object",
+            "properties": {
+                "totalItems": {
+                    "type": "integer"
                 }
             }
         },
@@ -1568,35 +1573,6 @@
                 }
             }
         },
-        "model.TimeSlotResponse": {
-            "type": "object",
-            "properties": {
-                "createdAt": {
-                    "type": "string"
-                },
-                "employee": {
-                    "$ref": "#/definitions/model.UserResponse"
-                },
-                "employeeId": {
-                    "type": "integer"
-                },
-                "endTime": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "integer"
-                },
-                "isAvailable": {
-                    "type": "boolean"
-                },
-                "startTime": {
-                    "type": "string"
-                },
-                "updatedAt": {
-                    "type": "string"
-                }
-            }
-        },
         "model.UserResponse": {
             "type": "object",
             "properties": {
@@ -1620,14 +1596,6 @@
                 },
                 "updatedAt": {
                     "type": "string"
-                }
-            }
-        },
-        "model.paginationMetadata": {
-            "type": "object",
-            "properties": {
-                "totalItems": {
-                    "type": "integer"
                 }
             }
         },

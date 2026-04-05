@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"github.com/MauricioLopezC/ReservationSystem/internal/common"
+	"github.com/MauricioLopezC/ReservationSystem/internal/model"
 	"github.com/MauricioLopezC/ReservationSystem/internal/utils"
 	"github.com/gofiber/fiber/v3"
 )
@@ -58,7 +59,10 @@ func (h *UsersHandler) FindAll(c fiber.Ctx) error {
 		return common.NewInternalServerErrorResponse(c)
 	}
 
-	return c.Status(fiber.StatusOK).JSON(usersResponse)
+	return c.Status(fiber.StatusOK).JSON(model.AllUsersSwaggerResponse{
+		Data:     model.UsersToResponse(usersResponse.Data),
+		Metadata: model.PaginationMetadata{TotalItems: usersResponse.Metadata.TotalItems},
+	})
 }
 
 // FindOne godoc
@@ -248,5 +252,5 @@ func (h *UsersHandler) AssignServiceToMe(c fiber.Ctx) error {
 		return common.NewInternalServerErrorResponse(c)
 	}
 
-	return c.Status(fiber.StatusCreated).JSON(user)
+	return c.Status(fiber.StatusCreated).JSON(user.ToResponse())
 }

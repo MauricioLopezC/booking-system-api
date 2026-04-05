@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/MauricioLopezC/ReservationSystem/internal/common"
+	"github.com/MauricioLopezC/ReservationSystem/internal/model"
 	"github.com/MauricioLopezC/ReservationSystem/internal/utils"
 	"github.com/gofiber/fiber/v3"
 )
@@ -77,7 +78,7 @@ func (h *BookingsHandler) CreateMyBooking(c fiber.Ctx) error {
 		fmt.Print(err.Error())
 		return common.NewInternalServerErrorResponse(c)
 	}
-	return c.Status(fiber.StatusCreated).JSON(newBooking)
+	return c.Status(fiber.StatusCreated).JSON(newBooking.ToResponse())
 }
 
 // FindAll godoc
@@ -122,7 +123,10 @@ func (h *BookingsHandler) FindAll(c fiber.Ctx) error {
 		return common.NewInternalServerErrorResponse(c)
 	}
 
-	return c.Status(200).JSON(allBookingsResponse)
+	return c.Status(200).JSON(model.AllBookingsSwaggerResponse{
+		Data:     model.BookingsToResponse(allBookingsResponse.Data),
+		Metadata: model.PaginationMetadata{TotalItems: allBookingsResponse.Metadata.TotalItems},
+	})
 }
 
 // FindOne godoc
@@ -157,7 +161,7 @@ func (h *BookingsHandler) FindOne(c fiber.Ctx) error {
 		// unexpected error
 		return common.NewInternalServerErrorResponse(c)
 	}
-	return c.Status(fiber.StatusOK).JSON(booking)
+	return c.Status(fiber.StatusOK).JSON(booking.ToResponse())
 }
 
 // FindMyBookings godoc
@@ -215,7 +219,10 @@ func (h *BookingsHandler) FindMyBookings(c fiber.Ctx) error {
 		return common.NewInternalServerErrorResponse(c)
 	}
 
-	return c.Status(fiber.StatusOK).JSON(allBookingsResponse)
+	return c.Status(fiber.StatusOK).JSON(model.AllBookingsSwaggerResponse{
+		Data:     model.BookingsToResponse(allBookingsResponse.Data),
+		Metadata: model.PaginationMetadata{TotalItems: allBookingsResponse.Metadata.TotalItems},
+	})
 }
 
 // CancelBooking godoc
@@ -271,5 +278,5 @@ func (h *BookingsHandler) CancelBooking(c fiber.Ctx) error {
 		return common.NewInternalServerErrorResponse(c)
 	}
 
-	return c.Status(fiber.StatusOK).JSON(booking)
+	return c.Status(fiber.StatusOK).JSON(booking.ToResponse())
 }

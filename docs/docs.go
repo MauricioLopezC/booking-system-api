@@ -145,12 +145,9 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Map of date (YYYY-MM-DD) to available time slots",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/model.TimeSlotResponse"
-                            }
+                            "type": "object"
                         }
                     },
                     "400": {
@@ -1425,7 +1422,7 @@ const docTemplate = `{
                     }
                 },
                 "metadata": {
-                    "$ref": "#/definitions/model.paginationMetadata"
+                    "$ref": "#/definitions/model.PaginationMetadata"
                 }
             }
         },
@@ -1439,7 +1436,7 @@ const docTemplate = `{
                     }
                 },
                 "metadata": {
-                    "$ref": "#/definitions/model.paginationMetadata"
+                    "$ref": "#/definitions/model.PaginationMetadata"
                 }
             }
         },
@@ -1481,6 +1478,14 @@ const docTemplate = `{
                 },
                 "updatedAt": {
                     "type": "string"
+                }
+            }
+        },
+        "model.PaginationMetadata": {
+            "type": "object",
+            "properties": {
+                "totalItems": {
+                    "type": "integer"
                 }
             }
         },
@@ -1574,35 +1579,6 @@ const docTemplate = `{
                 }
             }
         },
-        "model.TimeSlotResponse": {
-            "type": "object",
-            "properties": {
-                "createdAt": {
-                    "type": "string"
-                },
-                "employee": {
-                    "$ref": "#/definitions/model.UserResponse"
-                },
-                "employeeId": {
-                    "type": "integer"
-                },
-                "endTime": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "integer"
-                },
-                "isAvailable": {
-                    "type": "boolean"
-                },
-                "startTime": {
-                    "type": "string"
-                },
-                "updatedAt": {
-                    "type": "string"
-                }
-            }
-        },
         "model.UserResponse": {
             "type": "object",
             "properties": {
@@ -1626,14 +1602,6 @@ const docTemplate = `{
                 },
                 "updatedAt": {
                     "type": "string"
-                }
-            }
-        },
-        "model.paginationMetadata": {
-            "type": "object",
-            "properties": {
-                "totalItems": {
-                    "type": "integer"
                 }
             }
         },

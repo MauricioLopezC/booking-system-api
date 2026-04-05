@@ -69,6 +69,54 @@ func (so ScheduleOverride) ToResponse() ScheduleOverrideResponse {
 	}
 }
 
+func BookingsToResponse(bs []Booking) []BookingResponse {
+	result := make([]BookingResponse, len(bs))
+	for i, b := range bs {
+		result[i] = b.ToResponse()
+	}
+	return result
+}
+
+func SchedulesToResponse(ss []Schedule) []ScheduleResponse {
+	result := make([]ScheduleResponse, len(ss))
+	for i, s := range ss {
+		result[i] = s.ToResponse()
+	}
+	return result
+}
+
+func ServicesToResponse(ss []Service) []ServiceResponse {
+	result := make([]ServiceResponse, len(ss))
+	for i, s := range ss {
+		result[i] = s.ToResponse()
+	}
+	return result
+}
+
+func SlotsToResponse(ts []TimeSlot) []TimeSlotResponse {
+	result := make([]TimeSlotResponse, len(ts))
+	for i, t := range ts {
+		result[i] = t.ToResponse()
+	}
+	return result
+}
+
+func ScheduleOverridesToResponse(sos []ScheduleOverride) []ScheduleOverrideResponse {
+	result := make([]ScheduleOverrideResponse, len(sos))
+	for i, so := range sos {
+		result[i] = so.ToResponse()
+	}
+	return result
+}
+
+func UsersToResponse(us []User) []UserResponse {
+	result := make([]UserResponse, len(us))
+	for i, u := range us {
+		result[i] = u.ToResponse()
+	}
+	return result
+}
+
 func (ts TimeSlot) ToResponse() TimeSlotResponse {
 	return TimeSlotResponse{
 		ID:          ts.ID,

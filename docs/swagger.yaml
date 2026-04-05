@@ -80,7 +80,7 @@ definitions:
           $ref: '#/definitions/model.BookingResponse'
         type: array
       metadata:
-        $ref: '#/definitions/model.paginationMetadata'
+        $ref: '#/definitions/model.PaginationMetadata'
     type: object
   model.AllUsersSwaggerResponse:
     properties:
@@ -89,7 +89,7 @@ definitions:
           $ref: '#/definitions/model.UserResponse'
         type: array
       metadata:
-        $ref: '#/definitions/model.paginationMetadata'
+        $ref: '#/definitions/model.PaginationMetadata'
     type: object
   model.BookingResponse:
     properties:
@@ -117,6 +117,11 @@ definitions:
         type: string
       updatedAt:
         type: string
+    type: object
+  model.PaginationMetadata:
+    properties:
+      totalItems:
+        type: integer
     type: object
   model.ScheduleOverrideResponse:
     properties:
@@ -177,25 +182,6 @@ definitions:
       updatedAt:
         type: string
     type: object
-  model.TimeSlotResponse:
-    properties:
-      createdAt:
-        type: string
-      employee:
-        $ref: '#/definitions/model.UserResponse'
-      employeeId:
-        type: integer
-      endTime:
-        type: string
-      id:
-        type: integer
-      isAvailable:
-        type: boolean
-      startTime:
-        type: string
-      updatedAt:
-        type: string
-    type: object
   model.UserResponse:
     properties:
       createdAt:
@@ -212,11 +198,6 @@ definitions:
         type: string
       updatedAt:
         type: string
-    type: object
-  model.paginationMetadata:
-    properties:
-      totalItems:
-        type: integer
     type: object
   schedule.CreateScheduleDto:
     properties:
@@ -403,11 +384,9 @@ paths:
       - application/json
       responses:
         "200":
-          description: OK
+          description: Map of date (YYYY-MM-DD) to available time slots
           schema:
-            items:
-              $ref: '#/definitions/model.TimeSlotResponse'
-            type: array
+            type: object
         "400":
           description: Bad Request
           schema:

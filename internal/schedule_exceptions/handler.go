@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"github.com/MauricioLopezC/ReservationSystem/internal/common"
+	"github.com/MauricioLopezC/ReservationSystem/internal/model"
 	"github.com/MauricioLopezC/ReservationSystem/internal/utils"
 	"github.com/gofiber/fiber/v3"
 )
@@ -69,7 +70,7 @@ func (h *ScheduleExHandler) CreateMyScheduleEx(c fiber.Ctx) error {
 		return common.NewInternalServerErrorResponse(c)
 	}
 
-	return c.Status(fiber.StatusCreated).JSON(schedule)
+	return c.Status(fiber.StatusCreated).JSON(schedule.ToResponse())
 }
 
 func (h *ScheduleExHandler) FindAll(c fiber.Ctx) error {
@@ -98,7 +99,10 @@ func (h *ScheduleExHandler) FindAll(c fiber.Ctx) error {
 
 	allSchedueles, _ := h.scheduleExService.FindAll(limit, page, orderBy)
 
-	return c.Status(fiber.StatusOK).JSON(allSchedueles)
+	return c.Status(fiber.StatusOK).JSON(model.AllScheduleOverridesSwaggerResponse{
+		Data:     model.ScheduleOverridesToResponse(allSchedueles.Data),
+		Metadata: model.PaginationMetadata{TotalItems: allSchedueles.Metadata.TotalItems},
+	})
 }
 
 func (h *ScheduleExHandler) FindMyScheduleExs(c fiber.Ctx) error {
@@ -134,7 +138,10 @@ func (h *ScheduleExHandler) FindMyScheduleExs(c fiber.Ctx) error {
 	}
 
 	schedules, _ := h.scheduleExService.FindByUserID(limit, page, orderBy, authUser.ID)
-	return c.Status(fiber.StatusOK).JSON(schedules)
+	return c.Status(fiber.StatusOK).JSON(model.AllScheduleOverridesSwaggerResponse{
+		Data:     model.ScheduleOverridesToResponse(schedules.Data),
+		Metadata: model.PaginationMetadata{TotalItems: schedules.Metadata.TotalItems},
+	})
 }
 
 // DeleteMyScheduleEx godoc
@@ -176,5 +183,5 @@ func (h *ScheduleExHandler) DeleteMyScheduleEx(c fiber.Ctx) error {
 		return common.NewInternalServerErrorResponse(c)
 	}
 
-	return c.Status(fiber.StatusOK).JSON(deletedScheduleEx)
+	return c.Status(fiber.StatusOK).JSON(deletedScheduleEx.ToResponse())
 }

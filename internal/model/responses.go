@@ -78,20 +78,37 @@ type TimeSlotResponse struct {
 	Employee    UserResponse `json:"employee"`
 }
 
-// Paginated response wrappers (used only in swagger annotations).
-
-type paginationMetadata struct {
+// PaginationMetadata holds pagination info for paginated responses.
+type PaginationMetadata struct {
 	TotalItems int64 `json:"totalItems"`
 }
 
 // AllBookingsSwaggerResponse is the paginated bookings response.
 type AllBookingsSwaggerResponse struct {
 	Data     []BookingResponse  `json:"data"`
-	Metadata paginationMetadata `json:"metadata"`
+	Metadata PaginationMetadata `json:"metadata"`
+}
+
+// AllSchedulesSwaggerResponse is the paginated schedules response.
+type AllSchedulesSwaggerResponse struct {
+	Data     []ScheduleResponse `json:"data"`
+	Metadata PaginationMetadata `json:"metadata"`
+}
+
+// AllServicesSwaggerResponse is the paginated services response.
+type AllServicesSwaggerResponse struct {
+	Data     []ServiceResponse  `json:"data"`
+	Metadata PaginationMetadata `json:"metadata"`
+}
+
+// AllScheduleOverridesSwaggerResponse is the paginated schedule exceptions response.
+type AllScheduleOverridesSwaggerResponse struct {
+	Data     []ScheduleOverrideResponse `json:"data"`
+	Metadata PaginationMetadata         `json:"metadata"`
 }
 
 // AllUsersSwaggerResponse is the paginated users response.
 type AllUsersSwaggerResponse struct {
 	Data     []UserResponse     `json:"data"`
-	Metadata paginationMetadata `json:"metadata"`
+	Metadata PaginationMetadata `json:"metadata"`
 }
