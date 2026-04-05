@@ -73,7 +73,7 @@ definitions:
       statusCode:
         type: integer
     type: object
-  model.AllBookingsSwaggerResponse:
+  model.AllBookingsResponse:
     properties:
       data:
         items:
@@ -82,7 +82,7 @@ definitions:
       metadata:
         $ref: '#/definitions/model.PaginationMetadata'
     type: object
-  model.AllUsersSwaggerResponse:
+  model.AllUsersResponse:
     properties:
       data:
         items:
@@ -421,7 +421,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/model.AllBookingsSwaggerResponse'
+            $ref: '#/definitions/model.AllBookingsResponse'
         "400":
           description: Bad Request
           schema:
@@ -488,7 +488,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/model.AllBookingsSwaggerResponse'
+            $ref: '#/definitions/model.AllBookingsResponse'
         "400":
           description: Bad Request
           schema:
@@ -996,7 +996,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/model.AllUsersSwaggerResponse'
+            $ref: '#/definitions/model.AllUsersResponse'
         "400":
           description: Bad Request
           schema:

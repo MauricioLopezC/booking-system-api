@@ -8,7 +8,7 @@ type CreateScheduleResponse struct {
 type metadata struct {
 	TotalItems int64
 }
-type AllSchedulesResponse struct {
+type AllSchedules struct {
 	Data     []model.Schedule
 	Metadata metadata
 }

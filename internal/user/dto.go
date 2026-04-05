@@ -13,7 +13,7 @@ type metadata struct {
 	TotalItems int64
 }
 
-type AllUsersResponse struct {
+type AllUsers struct {
 	Data     []model.User
 	Metadata metadata
 }

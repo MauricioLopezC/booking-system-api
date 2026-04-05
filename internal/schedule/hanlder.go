@@ -111,7 +111,7 @@ func (h *ScheduleHandler) FindAll(c fiber.Ctx) error {
 	orderBy, _ = utils.ParseSortParam(orderBy, allowedFields)
 
 	allSchedueles, _ := h.scheduleService.FindAll(limit, page, orderBy)
-	return c.Status(fiber.StatusOK).JSON(model.AllSchedulesSwaggerResponse{
+	return c.Status(fiber.StatusOK).JSON(model.AllSchedulesResponse{
 		Data:     model.SchedulesToResponse(allSchedueles.Data),
 		Metadata: model.PaginationMetadata{TotalItems: allSchedueles.Metadata.TotalItems},
 	})

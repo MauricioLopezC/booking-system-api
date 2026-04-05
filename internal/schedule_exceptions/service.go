@@ -129,7 +129,7 @@ func hasScheduleExceptionOverlap(dtoStart, dtoEnd time.Time, existing []model.Sc
 	return false, nil
 }
 
-func (ss *ScheduleExService) FindAll(limit, page int, orderBy string) (*AllSchedulesResponse, error) {
+func (ss *ScheduleExService) FindAll(limit, page int, orderBy string) (*AllSchedules, error) {
 	offset := (page - 1) * limit
 	query := ss.db.Limit(limit).Offset(offset)
 
@@ -143,13 +143,13 @@ func (ss *ScheduleExService) FindAll(limit, page int, orderBy string) (*AllSched
 	var count int64
 	ss.db.Model(&model.ScheduleOverride{}).Count(&count)
 
-	return &AllSchedulesResponse{
+	return &AllSchedules{
 		Data:     schedules,
 		Metadata: metadata{TotalItems: count},
 	}, nil
 }
 
-func (ss *ScheduleExService) FindByUserID(limit, page int, orderBy string, userID uint) (*AllSchedulesResponse, error) {
+func (ss *ScheduleExService) FindByUserID(limit, page int, orderBy string, userID uint) (*AllSchedules, error) {
 	offset := (page - 1) * limit
 	query := ss.db.Limit(limit).Offset(offset)
 
@@ -163,7 +163,7 @@ func (ss *ScheduleExService) FindByUserID(limit, page int, orderBy string, userI
 	var count int64
 	ss.db.Model(&model.Schedule{}).Where("date > ? AND employee_id = ?", time.Now().UTC(), userID).Count(&count)
 
-	return &AllSchedulesResponse{
+	return &AllSchedules{
 		Data:     schedules,
 		Metadata: metadata{TotalItems: count},
 	}, nil

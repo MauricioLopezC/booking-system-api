@@ -6,7 +6,7 @@ type metadata struct {
 	TotalItems int64
 }
 
-type AllSchedulesResponse struct {
+type AllSchedules struct {
 	Data     []model.ScheduleOverride
 	Metadata metadata
 }

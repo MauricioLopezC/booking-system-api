@@ -83,32 +83,32 @@ type PaginationMetadata struct {
 	TotalItems int64 `json:"totalItems"`
 }
 
-// AllBookingsSwaggerResponse is the paginated bookings response.
-type AllBookingsSwaggerResponse struct {
+// AllBookingsResponse is the paginated bookings response.
+type AllBookingsResponse struct {
 	Data     []BookingResponse  `json:"data"`
 	Metadata PaginationMetadata `json:"metadata"`
 }
 
-// AllSchedulesSwaggerResponse is the paginated schedules response.
-type AllSchedulesSwaggerResponse struct {
+// AllSchedulesResponse is the paginated schedules response.
+type AllSchedulesResponse struct {
 	Data     []ScheduleResponse `json:"data"`
 	Metadata PaginationMetadata `json:"metadata"`
 }
 
-// AllServicesSwaggerResponse is the paginated services response.
-type AllServicesSwaggerResponse struct {
+// AllServicesResponse is the paginated services response.
+type AllServicesResponse struct {
 	Data     []ServiceResponse  `json:"data"`
 	Metadata PaginationMetadata `json:"metadata"`
 }
 
-// AllScheduleOverridesSwaggerResponse is the paginated schedule exceptions response.
-type AllScheduleOverridesSwaggerResponse struct {
+// AllScheduleOverridesResponse is the paginated schedule exceptions response.
+type AllScheduleOverridesResponse struct {
 	Data     []ScheduleOverrideResponse `json:"data"`
 	Metadata PaginationMetadata         `json:"metadata"`
 }
 
-// AllUsersSwaggerResponse is the paginated users response.
-type AllUsersSwaggerResponse struct {
+// AllUsersResponse is the paginated users response.
+type AllUsersResponse struct {
 	Data     []UserResponse     `json:"data"`
 	Metadata PaginationMetadata `json:"metadata"`
 }

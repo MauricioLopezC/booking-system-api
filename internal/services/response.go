@@ -6,7 +6,7 @@ type metadata struct {
 	TotalItems int64
 }
 
-type AllServicesResponse struct {
+type AllServices struct {
 	Data     []model.Service
 	Metadata metadata
 }

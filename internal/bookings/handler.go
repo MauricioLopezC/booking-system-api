@@ -89,7 +89,7 @@ func (h *BookingsHandler) CreateMyBooking(c fiber.Ctx) error {
 // @Param        limit    query     int     true   "Items per page"
 // @Param        page     query     int     true   "Page number"
 // @Param        orderBy  query     string  false  "Sort field: booking_date | created_at"
-// @Success      200  {object}  model.AllBookingsSwaggerResponse
+// @Success      200  {object}  model.AllBookingsResponse
 // @Failure      400  {object}  common.ErrorResponse
 // @Failure      401  {object}  common.ErrorResponse
 // @Router       /bookings [get]
@@ -123,7 +123,7 @@ func (h *BookingsHandler) FindAll(c fiber.Ctx) error {
 		return common.NewInternalServerErrorResponse(c)
 	}
 
-	return c.Status(200).JSON(model.AllBookingsSwaggerResponse{
+	return c.Status(200).JSON(model.AllBookingsResponse{
 		Data:     model.BookingsToResponse(allBookingsResponse.Data),
 		Metadata: model.PaginationMetadata{TotalItems: allBookingsResponse.Metadata.TotalItems},
 	})
@@ -172,7 +172,7 @@ func (h *BookingsHandler) FindOne(c fiber.Ctx) error {
 // @Param        limit    query     int     false  "Items per page (default 10)"
 // @Param        page     query     int     false  "Page number (default 1)"
 // @Param        orderBy  query     string  false  "Sort field: booking_date | created_at"
-// @Success      200  {object}  model.AllBookingsSwaggerResponse
+// @Success      200  {object}  model.AllBookingsResponse
 // @Failure      400  {object}  common.ErrorResponse
 // @Failure      401  {object}  common.ErrorResponse
 // @Router       /me/bookings [get]
@@ -219,7 +219,7 @@ func (h *BookingsHandler) FindMyBookings(c fiber.Ctx) error {
 		return common.NewInternalServerErrorResponse(c)
 	}
 
-	return c.Status(fiber.StatusOK).JSON(model.AllBookingsSwaggerResponse{
+	return c.Status(fiber.StatusOK).JSON(model.AllBookingsResponse{
 		Data:     model.BookingsToResponse(allBookingsResponse.Data),
 		Metadata: model.PaginationMetadata{TotalItems: allBookingsResponse.Metadata.TotalItems},
 	})

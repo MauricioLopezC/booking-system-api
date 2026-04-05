@@ -19,7 +19,7 @@ func NewUsersService(db *gorm.DB) *UsersService {
 	return &UsersService{db: db}
 }
 
-func (us *UsersService) FindAll(limit, page int, orderBy string) (*AllUsersResponse, error) {
+func (us *UsersService) FindAll(limit, page int, orderBy string) (*AllUsers, error) {
 	offset := (page - 1) * limit
 	query := us.db.Model(&model.User{})
 
@@ -37,7 +37,7 @@ func (us *UsersService) FindAll(limit, page int, orderBy string) (*AllUsersRespo
 		return nil, err
 	}
 
-	return &AllUsersResponse{
+	return &AllUsers{
 		Data:     users,
 		Metadata: metadata{TotalItems: count},
 	}, nil

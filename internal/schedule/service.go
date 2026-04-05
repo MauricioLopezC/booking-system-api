@@ -92,7 +92,7 @@ func hasScheduleOverlap(dtoStart, dtoEnd time.Time, existing []model.Schedule) (
 	return false, nil
 }
 
-func (ss *ScheduleService) FindAll(limit, page int, orderBy string) (*AllSchedulesResponse, error) {
+func (ss *ScheduleService) FindAll(limit, page int, orderBy string) (*AllSchedules, error) {
 	offset := (page - 1) * limit
 	query := ss.db.Model(&model.Schedule{})
 
@@ -110,7 +110,7 @@ func (ss *ScheduleService) FindAll(limit, page int, orderBy string) (*AllSchedul
 		return nil, err
 	}
 
-	return &AllSchedulesResponse{
+	return &AllSchedules{
 		Data:     schedules,
 		Metadata: metadata{TotalItems: count},
 	}, nil

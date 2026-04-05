@@ -26,7 +26,7 @@ func NewUsersHandler(s *UsersService) *UsersHandler {
 // @Param        limit    query     int     true   "Items per page"
 // @Param        page     query     int     true   "Page number"
 // @Param        orderBy  query     string  false  "Sort field: booking_date | created_at"
-// @Success      200  {object}  model.AllUsersSwaggerResponse
+// @Success      200  {object}  model.AllUsersResponse
 // @Failure      400  {object}  common.ErrorResponse
 // @Failure      401  {object}  common.ErrorResponse
 // @Router       /users [get]
@@ -59,7 +59,7 @@ func (h *UsersHandler) FindAll(c fiber.Ctx) error {
 		return common.NewInternalServerErrorResponse(c)
 	}
 
-	return c.Status(fiber.StatusOK).JSON(model.AllUsersSwaggerResponse{
+	return c.Status(fiber.StatusOK).JSON(model.AllUsersResponse{
 		Data:     model.UsersToResponse(usersResponse.Data),
 		Metadata: model.PaginationMetadata{TotalItems: usersResponse.Metadata.TotalItems},
 	})

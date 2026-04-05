@@ -97,7 +97,7 @@ func (h *ServicesHandler) FindAll(c fiber.Ctx) error {
 	if err != nil {
 		return common.NewInternalServerErrorResponse(c)
 	}
-	return c.Status(fiber.StatusOK).JSON(model.AllServicesSwaggerResponse{
+	return c.Status(fiber.StatusOK).JSON(model.AllServicesResponse{
 		Data:     model.ServicesToResponse(allServicesResponse.Data),
 		Metadata: model.PaginationMetadata{TotalItems: allServicesResponse.Metadata.TotalItems},
 	})

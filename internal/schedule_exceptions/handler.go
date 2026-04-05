@@ -99,7 +99,7 @@ func (h *ScheduleExHandler) FindAll(c fiber.Ctx) error {
 
 	allSchedueles, _ := h.scheduleExService.FindAll(limit, page, orderBy)
 
-	return c.Status(fiber.StatusOK).JSON(model.AllScheduleOverridesSwaggerResponse{
+	return c.Status(fiber.StatusOK).JSON(model.AllScheduleOverridesResponse{
 		Data:     model.ScheduleOverridesToResponse(allSchedueles.Data),
 		Metadata: model.PaginationMetadata{TotalItems: allSchedueles.Metadata.TotalItems},
 	})
@@ -138,7 +138,7 @@ func (h *ScheduleExHandler) FindMyScheduleExs(c fiber.Ctx) error {
 	}
 
 	schedules, _ := h.scheduleExService.FindByUserID(limit, page, orderBy, authUser.ID)
-	return c.Status(fiber.StatusOK).JSON(model.AllScheduleOverridesSwaggerResponse{
+	return c.Status(fiber.StatusOK).JSON(model.AllScheduleOverridesResponse{
 		Data:     model.ScheduleOverridesToResponse(schedules.Data),
 		Metadata: model.PaginationMetadata{TotalItems: schedules.Metadata.TotalItems},
 	})

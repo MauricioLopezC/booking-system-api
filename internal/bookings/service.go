@@ -67,7 +67,7 @@ func (bs *BookingsService) CreateBooking(bookingDto BookingDto, customerID uint)
 	return &booking, nil
 }
 
-func (bs *BookingsService) FindAll(limit, page int, orderBy string) (*AllBookingsResponse, error) {
+func (bs *BookingsService) FindAll(limit, page int, orderBy string) (*AllBookings, error) {
 	offset := (page - 1) * limit
 	query := bs.db.Limit(limit).Offset(offset)
 	if orderBy != "" {
@@ -80,7 +80,7 @@ func (bs *BookingsService) FindAll(limit, page int, orderBy string) (*AllBooking
 	var count int64
 	bs.db.Model(&model.Booking{}).Count(&count)
 
-	return &AllBookingsResponse{
+	return &AllBookings{
 		Data:     bookings,
 		Metadata: metadata{TotalItems: count},
 	}, nil
@@ -98,7 +98,7 @@ func (bs *BookingsService) FindByID(id uint) (*model.Booking, error) {
 	return booking, nil
 }
 
-func (bs *BookingsService) FindByUserID(limit, page int, orderBy string, userID uint, userRole string) (*AllBookingsResponse, error) {
+func (bs *BookingsService) FindByUserID(limit, page int, orderBy string, userID uint, userRole string) (*AllBookings, error) {
 	offset := (page - 1) * limit
 
 	query := bs.db.Model(&model.Booking{})
@@ -125,7 +125,7 @@ func (bs *BookingsService) FindByUserID(limit, page int, orderBy string, userID 
 		return nil, err
 	}
 
-	return &AllBookingsResponse{
+	return &AllBookings{
 		Data:     bookings,
 		Metadata: metadata{TotalItems: count},
 	}, nil

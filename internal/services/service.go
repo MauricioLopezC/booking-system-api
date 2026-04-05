@@ -32,7 +32,7 @@ func (ss *ServicesService) Create(serviceDto CreateServiceDto) (*model.Service, 
 	return &service, nil
 }
 
-func (ss *ServicesService) FindAll(limit, page int, orderBy string) (*AllServicesResponse, error) {
+func (ss *ServicesService) FindAll(limit, page int, orderBy string) (*AllServices, error) {
 	offset := (page - 1) * limit
 	query := ss.db.Model(&model.Service{})
 
@@ -50,7 +50,7 @@ func (ss *ServicesService) FindAll(limit, page int, orderBy string) (*AllService
 		return nil, err
 	}
 
-	return &AllServicesResponse{
+	return &AllServices{
 		Data:     services,
 		Metadata: metadata{TotalItems: count},
 	}, nil

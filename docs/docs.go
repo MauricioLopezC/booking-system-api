@@ -205,7 +205,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/model.AllBookingsSwaggerResponse"
+                            "$ref": "#/definitions/model.AllBookingsResponse"
                         }
                     },
                     "400": {
@@ -312,7 +312,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/model.AllBookingsSwaggerResponse"
+                            "$ref": "#/definitions/model.AllBookingsResponse"
                         }
                     },
                     "400": {
@@ -1116,7 +1116,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/model.AllUsersSwaggerResponse"
+                            "$ref": "#/definitions/model.AllUsersResponse"
                         }
                     },
                     "400": {
@@ -1412,7 +1412,7 @@ const docTemplate = `{
                 }
             }
         },
-        "model.AllBookingsSwaggerResponse": {
+        "model.AllBookingsResponse": {
             "type": "object",
             "properties": {
                 "data": {
@@ -1426,7 +1426,7 @@ const docTemplate = `{
                 }
             }
         },
-        "model.AllUsersSwaggerResponse": {
+        "model.AllUsersResponse": {
             "type": "object",
             "properties": {
                 "data": {
