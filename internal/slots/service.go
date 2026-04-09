@@ -32,7 +32,7 @@ func (ss *SlotsService) FindAvailableSlots(employeeID, serviceID uint, startDate
 
 	var service model.Service
 	if result := ss.db.First(&service, serviceID); result.Error != nil {
-		return nil, fmt.Errorf("%w: %s", common.ErrValidation, "Employee does not have the selected service")
+		return nil, fmt.Errorf("%w: %s", common.ErrValidation, "service not found")
 	}
 
 	hasService, err := common.EmployeeHasService(ss.db, employeeID, serviceID)
