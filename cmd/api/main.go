@@ -1,6 +1,8 @@
 package main
 
 import (
+	"time"
+
 	"github.com/MauricioLopezC/ReservationSystem/config"
 	"github.com/MauricioLopezC/ReservationSystem/internal/auth"
 	"github.com/MauricioLopezC/ReservationSystem/internal/bookings"
@@ -28,6 +30,11 @@ import (
 // @name Authorization
 
 func main() {
+	// Force the process-wide local timezone to UTC so that time.Local, time.Now(),
+	// and all time.ParseInLocation(..., time.Local) calls are consistent with the
+	// UTC timestamps stored in the database.
+	time.Local = time.UTC
+
 	config.Load()
 	app := fiber.New()
 	database.ConnectDB()
