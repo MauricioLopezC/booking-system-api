@@ -84,8 +84,10 @@ func (as *AuthService) Register(userDto CreateUserDto) (*model.User, error) {
 	// check if user already exists
 	var existingUser model.User
 	userResult := as.db.Where("email = ?", userDto.Email).First(&existingUser)
-	if errors.Is(userResult.Error, gorm.ErrDuplicatedKey) {
+	if userResult.Error == nil {
 		return nil, fmt.Errorf("%w: %s", common.ErrConflict, "username, email or phone number already exists!")
+	} else if !errors.Is(userResult.Error, gorm.ErrRecordNotFound) {
+		return nil, errors.New("database error")
 	}
 
 	hash, err := hashPassword(userDto.Password)
@@ -102,7 +104,7 @@ func (as *AuthService) Register(userDto CreateUserDto) (*model.User, error) {
 
 	if result := as.db.Create(&newUser); result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrDuplicatedKey) {
-			return nil, fmt.Errorf("%w: %s", common.ErrConflict, "email, username or name already exists")
+			return nil, fmt.Errorf("%w: %s", common.ErrConflict, "email, username or phone number already exists")
 		}
 		return nil, errors.New("error creating user")
 	}
