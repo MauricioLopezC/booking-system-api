@@ -2,6 +2,7 @@ package utils
 
 import (
 	"github.com/MauricioLopezC/ReservationSystem/internal/common"
+	jwtware "github.com/gofiber/contrib/v3/jwt"
 	"github.com/gofiber/fiber/v3"
 	"github.com/golang-jwt/jwt/v5"
 )
@@ -13,13 +14,16 @@ type AuthUser struct {
 
 func GetAuthUser(c fiber.Ctx) (*AuthUser, error) {
 	// get user data from context
-	// TODO: FIX!!!!
-	userToken, ok1 := c.Locals("user").(*jwt.Token)
+	userToken := jwtware.FromContext(c)
+	if userToken == nil {
+		return nil, common.ErrUnauthorized
+	}
+
 	claims, ok2 := userToken.Claims.(jwt.MapClaims)
 	idF, ok3 := claims["user_id"].(float64)
 	role, ok4 := claims["role"].(string)
 
-	if !ok1 || !ok2 || !ok3 || !ok4 {
+	if !ok2 || !ok3 || !ok4 {
 		return nil, common.ErrUnauthorized
 	}
 

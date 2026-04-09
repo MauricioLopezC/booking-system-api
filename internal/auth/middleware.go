@@ -35,9 +35,9 @@ func jwtError(c fiber.Ctx, err error) error {
 func RoleMiddleware(allowedRoles ...string) fiber.Handler {
 	return func(c fiber.Ctx) error {
 		// get user info
-		user, ok1 := c.Locals("user").(*jwt.Token)
+		user := jwtware.FromContext(c)
 		claims, ok2 := user.Claims.(jwt.MapClaims)
-		if !ok1 || !ok2 {
+		if user == nil || !ok2 {
 			return c.Status(fiber.StatusUnauthorized).JSON(common.ErrorResponse{
 				StatusCode: fiber.StatusUnauthorized,
 				Message:    "Invalid auth token",
