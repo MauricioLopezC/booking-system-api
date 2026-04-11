@@ -6,6 +6,7 @@ import (
 
 	"github.com/MauricioLopezC/ReservationSystem/internal/common"
 	"github.com/MauricioLopezC/ReservationSystem/internal/model"
+	"github.com/MauricioLopezC/ReservationSystem/internal/utils"
 	"gorm.io/gorm"
 )
 
@@ -116,8 +117,8 @@ func (ss *SlotsService) getSlots(
 		var dailySlots []time.Time
 		for _, schedule := range dailySchedule {
 			// schedule time interval, for example [start, end] = [08:00, 14:00], [start, end] = [16:00, 20:00]
-			start := time.Date(day.Year(), day.Month(), day.Day(), schedule.StartTime.Hour(), schedule.StartTime.Minute(), 0, 0, time.UTC)
-			end := time.Date(day.Year(), day.Month(), day.Day(), schedule.EndTime.Hour(), schedule.EndTime.Minute(), 0, 0, time.UTC)
+			start := utils.NewTimeOfDay(schedule.StartTime).ToTimeOnDate(day)
+			end := utils.NewTimeOfDay(schedule.EndTime).ToTimeOnDate(day)
 			for current := start; current.Add(duration).Before(end) || current.Add(duration).Equal(end); current = current.Add(duration) {
 				// current is the start of current slot for example (duration 30min);  08:00, 08:30, 09:00, ...
 				if current.Before(now) {
@@ -137,8 +138,8 @@ func (ss *SlotsService) getSlots(
 						continue
 					}
 
-					exStart := time.Date(day.Year(), day.Month(), day.Day(), ex.StartTime.Hour(), ex.StartTime.Minute(), 0, 0, time.UTC)
-					exEnd := time.Date(day.Year(), day.Month(), day.Day(), ex.EndTime.Hour(), ex.EndTime.Minute(), 0, 0, time.UTC)
+					exStart := utils.NewTimeOfDay(*ex.StartTime).ToTimeOnDate(day)
+					exEnd := utils.NewTimeOfDay(*ex.EndTime).ToTimeOnDate(day)
 					if current.Before(exEnd) && current.Add(duration).After(exStart) {
 						blocked = true
 						break

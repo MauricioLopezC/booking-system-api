@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/MauricioLopezC/ReservationSystem/internal/model"
+	"github.com/MauricioLopezC/ReservationSystem/internal/utils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
@@ -12,8 +13,10 @@ import (
 
 // --- helpers ---
 
+// mustTimeOnly construye un valor time-only usando TimeOfDay, dejando claro
+// que la fecha es irrelevante y solo se usan hora y minuto.
 func mustTimeOnly(h, m int) time.Time {
-	return time.Date(0, 1, 1, h, m, 0, 0, time.UTC)
+	return utils.TimeOfDay{Hour: h, Minute: m}.ToTimeOnDate(time.Time{})
 }
 
 func makeSchedule(startH, startM, endH, endM int) model.Schedule {
