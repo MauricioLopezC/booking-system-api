@@ -66,12 +66,3 @@ type ScheduleOverride struct {
 	IsAvailable bool `gorm:"default:false"`
 	Employee    User `gorm:"foreignKey:EmployeeID"`
 }
-
-type TimeSlot struct {
-	gorm.Model
-	EmployeeID  uint
-	StartTime   time.Time // Date and time
-	EndTime     time.Time // Date and time
-	IsAvailable bool      `gorm:"default:true"`
-	Employee    User      `gorm:"foreignKey:EmployeeID"`
-}

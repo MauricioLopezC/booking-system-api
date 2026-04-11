@@ -93,14 +93,6 @@ func ServicesToResponse(ss []Service) []ServiceResponse {
 	return result
 }
 
-func SlotsToResponse(ts []TimeSlot) []TimeSlotResponse {
-	result := make([]TimeSlotResponse, len(ts))
-	for i, t := range ts {
-		result[i] = t.ToResponse()
-	}
-	return result
-}
-
 func ScheduleOverridesToResponse(sos []ScheduleOverride) []ScheduleOverrideResponse {
 	result := make([]ScheduleOverrideResponse, len(sos))
 	for i, so := range sos {
@@ -115,17 +107,4 @@ func UsersToResponse(us []User) []UserResponse {
 		result[i] = u.ToResponse()
 	}
 	return result
-}
-
-func (ts TimeSlot) ToResponse() TimeSlotResponse {
-	return TimeSlotResponse{
-		ID:          ts.ID,
-		CreatedAt:   ts.CreatedAt,
-		UpdatedAt:   ts.UpdatedAt,
-		EmployeeID:  ts.EmployeeID,
-		StartTime:   ts.StartTime,
-		EndTime:     ts.EndTime,
-		IsAvailable: ts.IsAvailable,
-		Employee:    ts.Employee.ToResponse(),
-	}
 }

@@ -44,7 +44,6 @@ func main() {
 		&model.Schedule{},
 		&model.Booking{},
 		&model.ScheduleOverride{},
-		&model.TimeSlot{},
 	)
 
 	// handles and servicies
