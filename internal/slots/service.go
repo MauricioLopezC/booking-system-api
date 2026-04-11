@@ -53,7 +53,6 @@ func (ss *SlotsService) FindAvailableSlots(employeeID, serviceID uint, startDate
 	// index schedules by week day for find later
 	weeklySchedule := make(map[time.Weekday][]model.Schedule)
 	for _, schedule := range schedules {
-		fmt.Println(schedule.StartTime.Zone())
 		weekday := time.Weekday(schedule.WeekDay)
 		weeklySchedule[weekday] = append(weeklySchedule[weekday], schedule)
 	}
@@ -129,8 +128,8 @@ func (ss *SlotsService) getSlots(
 		var dailySlots []time.Time
 		for _, schedule := range dailySchedule {
 			// schedule time interval, for example [start, end] = [08:00, 14:00], [start, end] = [16:00, 20:00]
-			start := time.Date(day.Year(), day.Month(), day.Day(), schedule.StartTime.Hour(), schedule.StartTime.Minute(), 0, 0, time.Local)
-			end := time.Date(day.Year(), day.Month(), day.Day(), schedule.EndTime.Hour(), schedule.EndTime.Minute(), 0, 0, time.Local)
+			start := time.Date(day.Year(), day.Month(), day.Day(), schedule.StartTime.Hour(), schedule.StartTime.Minute(), 0, 0, time.UTC)
+			end := time.Date(day.Year(), day.Month(), day.Day(), schedule.EndTime.Hour(), schedule.EndTime.Minute(), 0, 0, time.UTC)
 			for current := start; current.Add(duration).Before(end) || current.Add(duration).Equal(end); current = current.Add(duration) {
 				// current is the start of current slot for example (duration 30min);  08:00, 08:30, 09:00, ...
 				blocked := false
@@ -160,7 +159,7 @@ func (ss *SlotsService) getSlots(
 				}
 
 				if !blocked {
-					dailySlots = append(dailySlots, current.Local())
+					dailySlots = append(dailySlots, current.UTC())
 				}
 
 			}

@@ -12,7 +12,7 @@ func TestHasScheduleExceptionOverlap(t *testing.T) {
 	// Helper to parse time strings into time.Time objects with zero date
 	mustParseTimeOnly := func(value string) time.Time {
 		// Use "15:04" layout for HH:MM format
-		parsedTime, err := time.ParseInLocation("15:04", value, time.Local)
+		parsedTime, err := time.ParseInLocation("15:04", value, time.UTC)
 		if err != nil {
 			panic(err)
 		}

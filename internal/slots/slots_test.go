@@ -36,7 +36,7 @@ func TestGetSlots_WithModels(t *testing.T) {
 	}
 
 	// Fecha de prueba: martes 30 sep 2025
-	day := time.Date(2025, 9, 30, 0, 0, 0, 0, time.Local)
+	day := time.Date(2025, 9, 30, 0, 0, 0, 0, time.UTC)
 	dateKey := day.Format("2006-01-02")
 
 	// ==== Horario semanal ====
@@ -46,8 +46,8 @@ func TestGetSlots_WithModels(t *testing.T) {
 				Model:      gorm.Model{ID: 1},
 				EmployeeID: employee.ID,
 				WeekDay:    int(time.Tuesday),
-				StartTime:  time.Date(0, 1, 1, 8, 0, 0, 0, time.Local),
-				EndTime:    time.Date(0, 1, 1, 10, 0, 0, 0, time.Local),
+				StartTime:  time.Date(0, 1, 1, 8, 0, 0, 0, time.UTC),
+				EndTime:    time.Date(0, 1, 1, 10, 0, 0, 0, time.UTC),
 				Employee:   employee,
 			},
 		},
@@ -89,7 +89,7 @@ func TestGetSlots_WithModels(t *testing.T) {
 				CustomerID:  customer.ID,
 				EmployeeID:  employee.ID,
 				ServiceID:   serviceDef.ID,
-				BookingDate: time.Date(2025, 9, 30, 8, 30, 0, 0, time.Local), // 08:30
+				BookingDate: time.Date(2025, 9, 30, 8, 30, 0, 0, time.UTC), // 08:30
 				Status:      "booked",
 				Customer:    customer,
 				Employee:    employee,
@@ -108,8 +108,8 @@ func TestGetSlots_WithModels(t *testing.T) {
 	}, formatSlots(slots))
 
 	// ==== Caso 4: excepción parcial (bloquea 09:00–10:00) ====
-	startBlock := time.Date(day.Year(), day.Month(), day.Day(), 9, 0, 0, 0, time.Local)
-	endBlock := time.Date(day.Year(), day.Month(), day.Day(), 10, 0, 0, 0, time.Local)
+	startBlock := time.Date(day.Year(), day.Month(), day.Day(), 9, 0, 0, 0, time.UTC)
+	endBlock := time.Date(day.Year(), day.Month(), day.Day(), 10, 0, 0, 0, time.UTC)
 	exceptions = map[string][]model.ScheduleOverride{
 		dateKey: {
 			{

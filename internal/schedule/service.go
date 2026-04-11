@@ -22,12 +22,12 @@ func NewScheduleService(db *gorm.DB) *ScheduleService {
 func (ss *ScheduleService) Create(userID uint, scheduleDto CreateScheduleDto) (*model.Schedule, error) {
 	layout := "15:04"
 
-	dtoStartTime, err := time.ParseInLocation(layout, scheduleDto.StartTime, time.Local)
+	dtoStartTime, err := time.ParseInLocation(layout, scheduleDto.StartTime, time.UTC)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %s", common.ErrValidation, "start time must be in HH:MM format")
 	}
 
-	dtoEndTime, err := time.ParseInLocation(layout, scheduleDto.EndTime, time.Local)
+	dtoEndTime, err := time.ParseInLocation(layout, scheduleDto.EndTime, time.UTC)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %s", common.ErrValidation, "start time must be in HH:MM format")
 	}
@@ -48,8 +48,8 @@ func (ss *ScheduleService) Create(userID uint, scheduleDto CreateScheduleDto) (*
 		errMessage := fmt.Sprintf("time block [%s , %s] must be in an interval other than [%s , %s]",
 			scheduleDto.StartTime,
 			scheduleDto.EndTime,
-			matchSchedule.StartTime.Local().Format(layout),
-			matchSchedule.EndTime.Local().Format(layout),
+			matchSchedule.StartTime.UTC().Format(layout),
+			matchSchedule.EndTime.UTC().Format(layout),
 		)
 
 		return nil, fmt.Errorf("%w: %s", common.ErrConflict, errMessage)
@@ -73,7 +73,7 @@ func hasScheduleOverlap(dtoStart, dtoEnd time.Time, existing []model.Schedule) (
 			schedule.StartTime.Hour(),
 			schedule.StartTime.Minute(),
 			0, 0,
-			time.Local,
+			time.UTC,
 		)
 
 		existingEnd := time.Date(
@@ -81,7 +81,7 @@ func hasScheduleOverlap(dtoStart, dtoEnd time.Time, existing []model.Schedule) (
 			schedule.EndTime.Hour(),
 			schedule.EndTime.Minute(),
 			0, 0,
-			time.Local,
+			time.UTC,
 		)
 
 		// OVERLAP

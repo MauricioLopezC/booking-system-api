@@ -136,7 +136,7 @@ func TestHasScheduleOverlap(t *testing.T) {
 }
 
 func mustParse(layout, value string) time.Time {
-	t, err := time.ParseInLocation(layout, value, time.Local)
+	t, err := time.ParseInLocation(layout, value, time.UTC)
 	if err != nil {
 		panic(err)
 	}

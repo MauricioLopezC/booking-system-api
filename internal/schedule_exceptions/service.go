@@ -47,8 +47,8 @@ func (ss *ScheduleExService) Create(userID uint, scheduleExDto CreateScheduleExD
 		return nil, fmt.Errorf("%w: %s", common.ErrValidation, "startTime and endTime are required")
 	}
 
-	dtoStartTime, _ := time.ParseInLocation(time.TimeOnly, *scheduleExDto.StartTime, time.Local)
-	dtoEndTime, _ := time.ParseInLocation(time.TimeOnly, *scheduleExDto.EndTime, time.Local)
+	dtoStartTime, _ := time.ParseInLocation(time.TimeOnly, *scheduleExDto.StartTime, time.UTC)
+	dtoEndTime, _ := time.ParseInLocation(time.TimeOnly, *scheduleExDto.EndTime, time.UTC)
 
 	fmt.Println(dtoStartTime, dtoEndTime)
 	// validations
@@ -58,7 +58,7 @@ func (ss *ScheduleExService) Create(userID uint, scheduleExDto CreateScheduleExD
 	}
 
 	// Date > today date
-	if !time.Now().Before(dtoDate) {
+	if !time.Now().UTC().Before(dtoDate) {
 		return nil, fmt.Errorf("%w: %s", common.ErrValidation, "exception date must be greater than current date")
 	}
 
@@ -73,8 +73,8 @@ func (ss *ScheduleExService) Create(userID uint, scheduleExDto CreateScheduleExD
 			errMessage = fmt.Sprintf("time block [%s , %s] overlaps with another exception [%s , %s]",
 				*scheduleExDto.StartTime,
 				*scheduleExDto.EndTime,
-				matchSchedule.StartTime.Local().Format(layout),
-				matchSchedule.EndTime.Local().Format(layout),
+				matchSchedule.StartTime.UTC().Format(layout),
+				matchSchedule.EndTime.UTC().Format(layout),
 			)
 		}
 		return nil, fmt.Errorf("%w: %s", common.ErrConflict, errMessage)
@@ -111,7 +111,7 @@ func hasScheduleExceptionOverlap(dtoStart, dtoEnd time.Time, existing []model.Sc
 			schedule.StartTime.Hour(),
 			schedule.StartTime.Minute(),
 			0, 0,
-			time.Local,
+			time.UTC,
 		)
 
 		existingEnd := time.Date(
@@ -119,7 +119,7 @@ func hasScheduleExceptionOverlap(dtoStart, dtoEnd time.Time, existing []model.Sc
 			schedule.EndTime.Hour(),
 			schedule.EndTime.Minute(),
 			0, 0,
-			time.Local,
+			time.UTC,
 		)
 
 		if dtoStart.Before(existingEnd) && dtoEnd.After(existingStart) {
