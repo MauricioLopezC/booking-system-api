@@ -7,6 +7,7 @@ import (
 
 	"github.com/MauricioLopezC/ReservationSystem/internal/common"
 	"github.com/MauricioLopezC/ReservationSystem/internal/model"
+	"github.com/MauricioLopezC/ReservationSystem/internal/utils"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
@@ -32,17 +33,17 @@ func (ss *ScheduleService) Create(userID uint, scheduleDto CreateScheduleDto) (*
 		return nil, fmt.Errorf("%w: %s", common.ErrValidation, "start time must be in HH:MM format")
 	}
 
-	fmt.Println("DATA")
-	fmt.Println(dtoEndTime, dtoStartTime)
+	dtoStart := utils.NewTimeOfDay(dtoStartTime)
+	dtoEnd := utils.NewTimeOfDay(dtoEndTime)
 
-	if !dtoStartTime.Before(dtoEndTime) {
+	if !dtoStart.Before(dtoEnd) {
 		return nil, fmt.Errorf("%w: %s", common.ErrValidation, "end time must be greater than the start time")
 	}
 
 	schedulesFound := []model.Schedule{}
 	ss.db.Where("employee_id = ? AND week_day = ?", userID, scheduleDto.WeekDay).Find(&schedulesFound)
 
-	hasOverlap, matchSchedule := hasScheduleOverlap(dtoStartTime, dtoEndTime, schedulesFound)
+	hasOverlap, matchSchedule := hasScheduleOverlap(dtoStart, dtoEnd, schedulesFound)
 
 	if hasOverlap {
 		errMessage := fmt.Sprintf("time block [%s , %s] must be in an interval other than [%s , %s]",
@@ -66,23 +67,10 @@ func (ss *ScheduleService) Create(userID uint, scheduleDto CreateScheduleDto) (*
 	return &newSchedule, nil
 }
 
-func hasScheduleOverlap(dtoStart, dtoEnd time.Time, existing []model.Schedule) (bool, *model.Schedule) {
+func hasScheduleOverlap(dtoStart, dtoEnd utils.TimeOfDay, existing []model.Schedule) (bool, *model.Schedule) {
 	for i, schedule := range existing {
-		existingStart := time.Date(
-			0, 1, 1,
-			schedule.StartTime.Hour(),
-			schedule.StartTime.Minute(),
-			0, 0,
-			time.UTC,
-		)
-
-		existingEnd := time.Date(
-			0, 1, 1,
-			schedule.EndTime.Hour(),
-			schedule.EndTime.Minute(),
-			0, 0,
-			time.UTC,
-		)
+		existingStart := utils.NewTimeOfDay(schedule.StartTime)
+		existingEnd := utils.NewTimeOfDay(schedule.EndTime)
 
 		// OVERLAP
 		if dtoStart.Before(existingEnd) && dtoEnd.After(existingStart) {
@@ -114,7 +102,6 @@ func (ss *ScheduleService) FindAll(limit, page int, orderBy string) (*AllSchedul
 		Data:     schedules,
 		Metadata: metadata{TotalItems: count},
 	}, nil
-
 }
 
 func (ss *ScheduleService) FindOne(id uint) (*model.Schedule, error) {
@@ -127,7 +114,7 @@ func (ss *ScheduleService) FindOne(id uint) (*model.Schedule, error) {
 	return schedule, nil
 }
 
-// there is no need for paginate because employee needs to see all his schedules
+// FindByUserID there is no need for paginate because employee needs to see all his schedules
 func (ss *ScheduleService) FindByUserID(userID uint) ([]model.Schedule, error) {
 	schedules := []model.Schedule{}
 	if result := ss.db.Where("employee_id = ?", userID).Order("week_day").Find(&schedules); result.Error != nil {

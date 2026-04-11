@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/MauricioLopezC/ReservationSystem/internal/model"
+	"github.com/MauricioLopezC/ReservationSystem/internal/utils"
 	"github.com/stretchr/testify/require"
 )
 
@@ -124,8 +125,8 @@ func TestHasScheduleOverlap(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			dtoStart := mustParse(layout, tc.newStart)
-			dtoEnd := mustParse(layout, tc.newEnd)
+			dtoStart := utils.NewTimeOfDay(mustParse(layout, tc.newStart))
+			dtoEnd := utils.NewTimeOfDay(mustParse(layout, tc.newEnd))
 
 			hasOverlap, match := hasScheduleOverlap(dtoStart, dtoEnd, existingSchedules)
 
