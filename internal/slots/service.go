@@ -22,6 +22,10 @@ type SlotMap map[string][]time.Time // fecha en formato YYYY-MM-DD
 const MaxDaysRange = 14
 
 func (ss *SlotsService) FindAvailableSlots(employeeID, serviceID uint, startDate, endDate time.Time) (SlotMap, error) {
+	startDate = time.Date(startDate.Year(), startDate.Month(), startDate.Day(), 0, 0, 0, 0, time.UTC)
+	endDate = time.Date(endDate.Year(), endDate.Month(), endDate.Day(), 0, 0, 0, 0, time.UTC)
+	endExclusive := endDate.AddDate(0, 0, 1)
+
 	if endDate.After(startDate.AddDate(0, 0, MaxDaysRange)) {
 		return nil, fmt.Errorf("%w: %s", common.ErrValidation, "endDate must no exceed two weeks from today")
 	}
@@ -59,17 +63,8 @@ func (ss *SlotsService) FindAvailableSlots(employeeID, serviceID uint, startDate
 
 	// step 3. get schedules exceptions/overrides in date range
 	exceptions := []model.ScheduleOverride{}
-
-	if startDate.Equal(endDate) {
-		result := ss.db.Where("employee_id = ? AND date BETWEEN ? AND ? AND is_available = ?", employeeID, startDate, endDate.AddDate(0, 0, 1), false).Find(&exceptions)
-		if result.Error != nil {
-			return nil, err
-		}
-	} else {
-		result := ss.db.Where("employee_id = ? AND date BETWEEN ? AND ? AND is_available = ?", employeeID, startDate, endDate, false).Find(&exceptions)
-		if result.Error != nil {
-			return nil, err
-		}
+	if result := ss.db.Where("employee_id = ? AND date >= ? AND date < ? AND is_available = ?", employeeID, startDate, endExclusive, false).Find(&exceptions); result.Error != nil {
+		return nil, result.Error
 	}
 
 	// Indexing exceptions by date
@@ -81,16 +76,8 @@ func (ss *SlotsService) FindAvailableSlots(employeeID, serviceID uint, startDate
 
 	// step 4. get existing bookings
 	bookings := []model.Booking{}
-	if startDate.Equal(endDate) {
-		result := ss.db.Preload("Service").Where("employee_id = ? AND booking_date BETWEEN ? AND ?", employeeID, startDate, endDate.AddDate(0, 0, 1)).Find(&bookings)
-		if result.Error != nil {
-			return nil, err
-		}
-	} else {
-		result := ss.db.Preload("Service").Where("employee_id = ? AND booking_date BETWEEN ? AND ?", employeeID, startDate, endDate).Find(&bookings)
-		if result.Error != nil {
-			return nil, err
-		}
+	if result := ss.db.Preload("Service").Where("employee_id = ? AND booking_date >= ? AND booking_date < ?", employeeID, startDate, endExclusive).Find(&bookings); result.Error != nil {
+		return nil, result.Error
 	}
 
 	// Indexing existing bookings
@@ -116,6 +103,7 @@ func (ss *SlotsService) getSlots(
 ) SlotMap {
 	slotMap := make(SlotMap)
 	duration := time.Duration(service.DurationMinutes) * time.Minute
+	now := time.Now().UTC()
 
 	// Loop over each range day
 	for day := startDate; !day.After(endDate); day = day.AddDate(0, 0, 1) {
@@ -132,6 +120,10 @@ func (ss *SlotsService) getSlots(
 			end := time.Date(day.Year(), day.Month(), day.Day(), schedule.EndTime.Hour(), schedule.EndTime.Minute(), 0, 0, time.UTC)
 			for current := start; current.Add(duration).Before(end) || current.Add(duration).Equal(end); current = current.Add(duration) {
 				// current is the start of current slot for example (duration 30min);  08:00, 08:30, 09:00, ...
+				if current.Before(now) {
+					continue
+				}
+
 				blocked := false
 
 				// check exceptions
@@ -141,20 +133,28 @@ func (ss *SlotsService) getSlots(
 						break
 					}
 
-					if current.Before(*ex.EndTime) && current.Add(duration).After(*ex.StartTime) && !ex.IsAvailable {
+					if ex.StartTime == nil || ex.EndTime == nil {
+						continue
+					}
+
+					exStart := time.Date(day.Year(), day.Month(), day.Day(), ex.StartTime.Hour(), ex.StartTime.Minute(), 0, 0, time.UTC)
+					exEnd := time.Date(day.Year(), day.Month(), day.Day(), ex.EndTime.Hour(), ex.EndTime.Minute(), 0, 0, time.UTC)
+					if current.Before(exEnd) && current.Add(duration).After(exStart) {
 						blocked = true
 						break
 					}
 				}
 
 				// check bookings
-				for _, booking := range dayBookings {
-					existingStart := booking.BookingDate
-					existingEnd := booking.BookingDate.Add(time.Duration(booking.Service.DurationMinutes) * time.Minute)
-					currentEnd := current.Add(duration)
-					if existingStart.Before(currentEnd) && existingEnd.After(current) {
-						blocked = true
-						break
+				if !blocked {
+					for _, booking := range dayBookings {
+						existingStart := booking.BookingDate
+						existingEnd := booking.BookingDate.Add(time.Duration(booking.Service.DurationMinutes) * time.Minute)
+						currentEnd := current.Add(duration)
+						if existingStart.Before(currentEnd) && existingEnd.After(current) {
+							blocked = true
+							break
+						}
 					}
 				}
 
