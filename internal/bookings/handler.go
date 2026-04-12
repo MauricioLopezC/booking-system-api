@@ -86,27 +86,27 @@ func (h *BookingsHandler) CreateMyBooking(c fiber.Ctx) error {
 // @Tags         bookings
 // @Produce      json
 // @Security     BearerAuth
-// @Param        limit    query     int     true   "Items per page"
-// @Param        page     query     int     true   "Page number"
+// @Param        limit    query     int     false  "Items per page (default 10)"
+// @Param        page     query     int     false  "Page number (default 1)"
 // @Param        orderBy  query     string  false  "Sort field: booking_date | created_at"
 // @Success      200  {object}  model.AllBookingsResponse
 // @Failure      400  {object}  common.ErrorResponse
 // @Failure      401  {object}  common.ErrorResponse
 // @Router       /bookings [get]
 func (h *BookingsHandler) FindAll(c fiber.Ctx) error {
-	limit := fiber.Query[int](c, "limit")
+	limit := fiber.Query(c, "limit", 10)
 	if limit <= 0 {
 		return c.Status(fiber.ErrBadRequest.Code).JSON(common.ErrorResponse{
 			StatusCode: 400,
-			Message:    "Limit muste be an integer number and gt 0",
+			Message:    "limit must be an integer greater than 0",
 		})
 	}
 
-	page := fiber.Query[int](c, "page")
+	page := fiber.Query(c, "page", 1)
 	if page <= 0 {
 		return c.Status(fiber.ErrBadRequest.Code).JSON(common.ErrorResponse{
 			StatusCode: 400,
-			Message:    "page must be an integer number and gt 0",
+			Message:    "page must be an integer greater than 0",
 		})
 	}
 
@@ -255,7 +255,7 @@ func (h *BookingsHandler) CancelBooking(c fiber.Ctx) error {
 		})
 	}
 
-	booking, err := h.bookingsService.CancelBooking(id, authUser.ID, authUser.Role)
+	booking, err := h.bookingsService.CancelBooking(uint(id), authUser.ID, authUser.Role)
 	if err != nil {
 		if errors.Is(err, common.ErrUnauthorized) {
 			return c.Status(fiber.StatusUnauthorized).JSON(common.ErrorResponse{

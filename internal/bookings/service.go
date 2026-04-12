@@ -34,13 +34,13 @@ func (bs *BookingsService) CreateBooking(bookingDto BookingDto, customerID uint)
 	}
 
 	// check if booking date is greater than now, and is Before new two weeks
-	now := time.Now()
+	now := time.Now().UTC()
 	if !booking.BookingDate.After(now) {
 		return nil, fmt.Errorf("%w: %s", common.ErrValidation, "BookingDate must be greater than the current datetime")
 	}
 
 	if !booking.BookingDate.Before(now.AddDate(0, 0, MaxBookingDateDays)) {
-		return nil, fmt.Errorf("%w: %s", common.ErrValidation, "BookingDate must no exceed 2 weks")
+		return nil, fmt.Errorf("%w: %s", common.ErrValidation, "BookingDate must not exceed 2 weeks from today")
 	}
 
 	availableSlots, err := bs.slotsService.FindAvailableSlots(booking.EmployeeID, booking.ServiceID, booking.BookingDate, booking.BookingDate)
@@ -54,7 +54,7 @@ func (bs *BookingsService) CreateBooking(bookingDto BookingDto, customerID uint)
 		return nil, fmt.Errorf("%w: %s", common.ErrConflict, "There are no available appointments for the booking date")
 	}
 	if !slices.Contains(daySlots, booking.BookingDate) {
-		return nil, fmt.Errorf("%w: %s", common.ErrConflict, "The booking time does't not match  with any of available slots for the day")
+		return nil, fmt.Errorf("%w: %s", common.ErrConflict, "The booking time doesn't match any available slot for the day")
 	}
 
 	if result := bs.db.Create(&booking); result.Error != nil {
@@ -69,16 +69,21 @@ func (bs *BookingsService) CreateBooking(bookingDto BookingDto, customerID uint)
 
 func (bs *BookingsService) FindAll(limit, page int, orderBy string) (*AllBookings, error) {
 	offset := (page - 1) * limit
-	query := bs.db.Limit(limit).Offset(offset)
+	query := bs.db.Model(&model.Booking{})
+
+	var count int64
+	if err := query.Count(&count).Error; err != nil {
+		return nil, err
+	}
+
 	if orderBy != "" {
 		query = query.Order(orderBy)
 	}
 
-	bookings := []model.Booking{} // declaring bookings slice
-	query.Find(&bookings)
-
-	var count int64
-	bs.db.Model(&model.Booking{}).Count(&count)
+	bookings := []model.Booking{}
+	if err := query.Preload("Customer").Preload("Employee").Preload("Service").Limit(limit).Offset(offset).Find(&bookings).Error; err != nil {
+		return nil, err
+	}
 
 	return &AllBookings{
 		Data:     bookings,
@@ -88,7 +93,7 @@ func (bs *BookingsService) FindAll(limit, page int, orderBy string) (*AllBooking
 
 func (bs *BookingsService) FindByID(id uint) (*model.Booking, error) {
 	booking := new(model.Booking)
-	if result := bs.db.First(booking, id); result.Error != nil {
+	if result := bs.db.Preload("Customer").Preload("Employee").Preload("Service").First(booking, id); result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			return nil, fmt.Errorf("%w: %s", common.ErrRecordNotFound, "booking")
 		}
@@ -121,7 +126,7 @@ func (bs *BookingsService) FindByUserID(limit, page int, orderBy string, userID 
 
 	bookings := []model.Booking{}
 	// Note: query.Limit/Offset returns a new instance, safe to use after Count
-	if err := query.Limit(limit).Offset(offset).Find(&bookings).Error; err != nil {
+	if err := query.Preload("Customer").Preload("Employee").Preload("Service").Limit(limit).Offset(offset).Find(&bookings).Error; err != nil {
 		return nil, err
 	}
 
@@ -131,8 +136,8 @@ func (bs *BookingsService) FindByUserID(limit, page int, orderBy string, userID 
 	}, nil
 }
 
-func (bs *BookingsService) CancelBooking(id int, userID uint, userRole string) (*model.Booking, error) {
-	hasBooking, err := common.UserHasBooking(bs.db, userID, uint(id), userRole)
+func (bs *BookingsService) CancelBooking(id uint, userID uint, userRole string) (*model.Booking, error) {
+	hasBooking, err := common.UserHasBooking(bs.db, userID, id, userRole)
 	if err != nil {
 		return nil, err
 	}
@@ -141,21 +146,21 @@ func (bs *BookingsService) CancelBooking(id int, userID uint, userRole string) (
 	}
 
 	var booking model.Booking
-	if result := bs.db.First(&booking, id); result.Error != nil {
+	if result := bs.db.Preload("Customer").Preload("Employee").Preload("Service").First(&booking, id); result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			return nil, fmt.Errorf("%w: %s", common.ErrRecordNotFound, "booking")
 		}
-		return nil, err
+		return nil, result.Error
 	}
 
 	// Check if previous booking status is booked
 	if booking.Status != model.StatusBooked.String() {
-		return nil, fmt.Errorf("%w: %s", common.ErrConflict, "you can't cancel booking with status completed or cancelled")
+		return nil, fmt.Errorf("%w: %s", common.ErrConflict, "You can't cancel a booking with status completed or cancelled")
 	}
 
 	booking.Status = model.StatusCancelled.String()
 	if result := bs.db.Save(booking); result.Error != nil {
-		return nil, err
+		return nil, result.Error
 	}
 
 	return &booking, nil
