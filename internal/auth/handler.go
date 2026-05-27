@@ -31,7 +31,10 @@ func NewAuthHandler(as *AuthService) *AuthHandler {
 func (h *AuthHandler) Login(c fiber.Ctx) error {
 	var loginDto LoginDto
 	if err := c.Bind().Body(&loginDto); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(err.Error())
+		return c.Status(fiber.StatusBadRequest).JSON(common.ErrorResponse{
+			StatusCode: fiber.StatusBadRequest,
+			Message:    err.Error(),
+		})
 	}
 
 	if err := utils.Validate(&loginDto); err != nil {
@@ -75,7 +78,10 @@ func (h *AuthHandler) Register(c fiber.Ctx) error {
 	userDto := new(CreateUserDto)
 
 	if err := c.Bind().Body(userDto); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(err.Error())
+		return c.Status(fiber.StatusBadRequest).JSON(common.ErrorResponse{
+			StatusCode: fiber.StatusBadRequest,
+			Message:    err.Error(),
+		})
 	}
 
 	if err := utils.Validate(userDto); err != nil {

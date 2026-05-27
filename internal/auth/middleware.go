@@ -20,7 +20,7 @@ func Protected() fiber.Handler {
 
 func jwtError(c fiber.Ctx, err error) error {
 	if err.Error() == "Missing or malformed JWT" {
-		return c.Status(fiber.StatusBadRequest).JSON(common.ErrorResponse{
+		return c.Status(fiber.StatusUnauthorized).JSON(common.ErrorResponse{
 			StatusCode: fiber.StatusUnauthorized,
 			Message:    "Missing or malformed JWT",
 		})
@@ -62,8 +62,8 @@ func RoleMiddleware(allowedRoles ...string) fiber.Handler {
 			return c.Next()
 		}
 
-		return c.Status(fiber.StatusUnauthorized).JSON(common.ErrorResponse{
-			StatusCode: fiber.StatusUnauthorized,
+		return c.Status(fiber.StatusForbidden).JSON(common.ErrorResponse{
+			StatusCode: fiber.StatusForbidden,
 			Message:    "Access denied, insufficient permissions!",
 		})
 	}

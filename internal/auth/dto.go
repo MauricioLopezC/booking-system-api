@@ -21,5 +21,5 @@ type UserResponse struct {
 
 type LoginResponse struct {
 	UserResponse
-	Token string
+	Token string `json:"token"`
 }
