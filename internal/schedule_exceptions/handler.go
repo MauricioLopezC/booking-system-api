@@ -73,6 +73,18 @@ func (h *ScheduleExHandler) CreateMyScheduleEx(c fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(schedule.ToResponse())
 }
 
+// FindAll godoc
+// @Summary      Get all schedule exceptions (admin)
+// @Tags         schedule-exceptions
+// @Produce      json
+// @Security     BearerAuth
+// @Param        limit    query     int     true   "Items per page"
+// @Param        page     query     int     true   "Page number"
+// @Param        orderBy  query     string  false  "Sort field: date | created_at"
+// @Success      200  {object}  model.AllScheduleOverridesResponse
+// @Failure      400  {object}  common.ErrorResponse
+// @Failure      401  {object}  common.ErrorResponse
+// @Router       /schedule-exceptions [get]
 func (h *ScheduleExHandler) FindAll(c fiber.Ctx) error {
 	limit := fiber.Query[int](c, "limit")
 	if limit <= 0 {
@@ -105,6 +117,18 @@ func (h *ScheduleExHandler) FindAll(c fiber.Ctx) error {
 	})
 }
 
+// FindMyScheduleExs godoc
+// @Summary      Get current user schedule exceptions
+// @Tags         schedule-exceptions
+// @Produce      json
+// @Security     BearerAuth
+// @Param        limit    query     int     true   "Items per page"
+// @Param        page     query     int     true   "Page number"
+// @Param        orderBy  query     string  false  "Sort field: date | created_at"
+// @Success      200  {object}  model.AllScheduleOverridesResponse
+// @Failure      400  {object}  common.ErrorResponse
+// @Failure      401  {object}  common.ErrorResponse
+// @Router       /me/schedule-exceptions [get]
 func (h *ScheduleExHandler) FindMyScheduleExs(c fiber.Ctx) error {
 	limit := fiber.Query[int](c, "limit")
 	if limit <= 0 {

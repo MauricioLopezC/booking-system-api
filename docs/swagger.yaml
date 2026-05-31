@@ -82,6 +82,24 @@ definitions:
       metadata:
         $ref: '#/definitions/model.PaginationMetadata'
     type: object
+  model.AllScheduleOverridesResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/model.ScheduleOverrideResponse'
+        type: array
+      metadata:
+        $ref: '#/definitions/model.PaginationMetadata'
+    type: object
+  model.AllServicesResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/model.ServiceResponse'
+        type: array
+      metadata:
+        $ref: '#/definitions/model.PaginationMetadata'
+    type: object
   model.AllUsersResponse:
     properties:
       data:
@@ -401,15 +419,13 @@ paths:
   /bookings:
     get:
       parameters:
-      - description: Items per page
+      - description: Items per page (default 10)
         in: query
         name: limit
-        required: true
         type: integer
-      - description: Page number
+      - description: Page number (default 1)
         in: query
         name: page
-        required: true
         type: integer
       - description: 'Sort field: booking_date | created_at'
         in: query
@@ -577,6 +593,42 @@ paths:
       tags:
       - bookings
   /me/schedule-exceptions:
+    get:
+      parameters:
+      - description: Items per page
+        in: query
+        name: limit
+        required: true
+        type: integer
+      - description: Page number
+        in: query
+        name: page
+        required: true
+        type: integer
+      - description: 'Sort field: date | created_at'
+        in: query
+        name: orderBy
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.AllScheduleOverridesResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/common.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/common.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get current user schedule exceptions
+      tags:
+      - schedule-exceptions
     post:
       consumes:
       - application/json
@@ -768,6 +820,43 @@ paths:
       summary: Assign services to current user
       tags:
       - users
+  /schedule-exceptions:
+    get:
+      parameters:
+      - description: Items per page
+        in: query
+        name: limit
+        required: true
+        type: integer
+      - description: Page number
+        in: query
+        name: page
+        required: true
+        type: integer
+      - description: 'Sort field: date | created_at'
+        in: query
+        name: orderBy
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.AllScheduleOverridesResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/common.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/common.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get all schedule exceptions (admin)
+      tags:
+      - schedule-exceptions
   /schedules:
     get:
       parameters:
@@ -862,9 +951,7 @@ paths:
         "200":
           description: OK
           schema:
-            items:
-              $ref: '#/definitions/model.ServiceResponse'
-            type: array
+            $ref: '#/definitions/model.AllServicesResponse'
         "400":
           description: Bad Request
           schema:

@@ -64,7 +64,7 @@ func (h *ServicesHandler) Create(c fiber.Ctx) error {
 // @Param        limit    query     int     true   "Items per page"
 // @Param        page     query     int     true   "Page number"
 // @Param        orderBy  query     string  false  "Sort field: booking_date | created_at"
-// @Success      200  {array}   model.ServiceResponse
+// @Success      200  {object}  model.AllServicesResponse
 // @Failure      400  {object}  common.ErrorResponse
 // @Router       /services [get]
 // Use in GET /services endpoint, public route, use employeeId optional
