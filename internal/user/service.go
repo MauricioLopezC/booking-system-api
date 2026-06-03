@@ -129,6 +129,18 @@ func (us *UsersService) Delete(id uint) (*model.User, error) {
 	return &user, nil
 }
 
+func (us *UsersService) FindEmployeesByService(serviceID uint) ([]model.User, error) {
+	var employees []model.User
+	result := us.db.
+		Joins("JOIN user_services ON user_services.user_id = users.id").
+		Where("user_services.service_id = ? AND users.role = ?", serviceID, model.RoleEmployee.String()).
+		Find(&employees)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	return employees, nil
+}
+
 func (us *UsersService) AssignServicesToUser(userID uint, ServiceIDs []uint) (*model.User, error) {
 	var user model.User
 	if result := us.db.First(&user, userID); result.Error != nil {

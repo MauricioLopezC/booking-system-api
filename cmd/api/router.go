@@ -94,6 +94,9 @@ func SetupRoutes(
 	// Services
 	services := api.Group("/services")
 	services.Get("/", servicesH.FindAll)
+	// Services - Professionals
+	services.Get("/:id/professionals", usersH.FindEmployeesByService)
+
 	// Services - Protected
 	servicesProtected := services.Group("/", auth.Protected(), auth.RoleMiddleware("admin", "employee"))
 	servicesProtected.Post("/", servicesH.Create)

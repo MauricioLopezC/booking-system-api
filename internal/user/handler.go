@@ -205,6 +205,31 @@ func (h *UsersHandler) Delete(c fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(userResponse)
 }
 
+// FindEmployeesByService godoc
+// @Summary      Get professionals for a service
+// @Tags         services
+// @Produce      json
+// @Param        id   path      int  true  "Service ID"
+// @Success      200  {array}   model.UserResponse
+// @Failure      400  {object}  common.ErrorResponse
+// @Router       /services/{id}/professionals [get]
+func (h *UsersHandler) FindEmployeesByService(c fiber.Ctx) error {
+	id := fiber.Params[int](c, "id")
+	if id <= 0 {
+		return c.Status(fiber.StatusBadRequest).JSON(common.ErrorResponse{
+			StatusCode: fiber.StatusBadRequest,
+			Message:    "Numeric string greater than 0 is expected",
+		})
+	}
+
+	employees, err := h.usersService.FindEmployeesByService(uint(id))
+	if err != nil {
+		return common.NewInternalServerErrorResponse(c)
+	}
+
+	return c.Status(fiber.StatusOK).JSON(model.UsersToResponse(employees))
+}
+
 // AssignServiceToMe godoc
 // @Summary      Assign services to current user
 // @Tags         users
