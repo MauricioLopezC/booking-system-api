@@ -114,4 +114,11 @@ func SetupRoutes(
 	schedules := api.Group("/schedules", auth.Protected(), auth.RoleMiddleware("admin"))
 	schedules.Get("/", schedulesH.FindAll)
 	schedules.Get("/:id", schedulesH.FindOne)
+
+	// Users - Admin
+	users := api.Group("/users", auth.Protected(), auth.RoleMiddleware("admin"))
+	users.Get("/", usersH.FindAll)
+	users.Get("/:id", usersH.FindOne)
+	users.Patch("/:id", usersH.Update)
+	users.Delete("/:id", usersH.Delete)
 }
