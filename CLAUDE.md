@@ -21,6 +21,9 @@ go test -run TestGetSlots ./internal/slots   # single test by name
 # Seed database
 go run ./cmd/seed           # seed with default data
 go run ./cmd/seed -reset    # truncate all tables then seed
+
+# Generate OpenAPI docs (swagger)
+swag init --generalInfo cmd/api/main.go --dir . --output docs
 ```
 
 ## Environment
