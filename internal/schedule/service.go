@@ -46,7 +46,8 @@ func (ss *ScheduleService) Create(userID uint, scheduleDto CreateScheduleDto) (*
 	hasOverlap, matchSchedule := hasScheduleOverlap(dtoStart, dtoEnd, schedulesFound)
 
 	if hasOverlap {
-		errMessage := fmt.Sprintf("time block [%s , %s] must be in an interval other than [%s , %s]",
+		errMessage := fmt.Sprintf(
+			"time block [%s , %s] must be in an interval other than [%s , %s]",
 			scheduleDto.StartTime,
 			scheduleDto.EndTime,
 			matchSchedule.StartTime.UTC().Format(layout),
@@ -94,7 +95,7 @@ func (ss *ScheduleService) FindAll(limit, page int, orderBy string) (*AllSchedul
 	}
 
 	schedules := []model.Schedule{}
-	if err := query.Limit(limit).Offset(offset).Find(&schedules).Error; err != nil {
+	if err := query.Limit(limit).Offset(offset).Preload("Employee").Find(&schedules).Error; err != nil {
 		return nil, err
 	}
 

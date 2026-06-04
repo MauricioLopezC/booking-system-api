@@ -87,7 +87,7 @@ func (h *ScheduleHandler) CreateMySchedule(c fiber.Ctx) error {
 // @Router       /schedules [get]
 // FindAll admin only
 func (h *ScheduleHandler) FindAll(c fiber.Ctx) error {
-	limit := fiber.Query[int](c, "limit")
+	limit := fiber.Query(c, "limit", 10)
 	if limit <= 0 {
 		return c.Status(fiber.ErrBadRequest.Code).JSON(common.ErrorResponse{
 			StatusCode: fiber.StatusBadRequest,
@@ -95,7 +95,7 @@ func (h *ScheduleHandler) FindAll(c fiber.Ctx) error {
 		})
 	}
 
-	page := fiber.Query[int](c, "page")
+	page := fiber.Query(c, "page", 1)
 	if page <= 0 {
 		return c.Status(fiber.ErrBadRequest.Code).JSON(common.ErrorResponse{
 			StatusCode: fiber.StatusBadRequest,
@@ -110,7 +110,10 @@ func (h *ScheduleHandler) FindAll(c fiber.Ctx) error {
 	}
 	orderBy, _ = utils.ParseSortParam(orderBy, allowedFields)
 
-	allSchedueles, _ := h.scheduleService.FindAll(limit, page, orderBy)
+	allSchedueles, err := h.scheduleService.FindAll(limit, page, orderBy)
+	if err != nil {
+		return common.NewInternalServerErrorResponse(c)
+	}
 	return c.Status(fiber.StatusOK).JSON(model.AllSchedulesResponse{
 		Data:     model.SchedulesToResponse(allSchedueles.Data),
 		Metadata: model.PaginationMetadata{TotalItems: allSchedueles.Metadata.TotalItems},
