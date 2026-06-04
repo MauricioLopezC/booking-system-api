@@ -31,7 +31,7 @@ func NewUsersHandler(s *UsersService) *UsersHandler {
 // @Failure      401  {object}  common.ErrorResponse
 // @Router       /users [get]
 func (h *UsersHandler) FindAll(c fiber.Ctx) error {
-	limit := fiber.Query(c, "limit", 0)
+	limit := fiber.Query(c, "limit", 10)
 	if limit <= 0 {
 		return c.Status(fiber.ErrBadRequest.Code).JSON(common.ErrorResponse{
 			StatusCode: 400,
@@ -39,7 +39,7 @@ func (h *UsersHandler) FindAll(c fiber.Ctx) error {
 		})
 	}
 
-	page := fiber.Query(c, "page", 0)
+	page := fiber.Query(c, "page", 1)
 	if page <= 0 {
 		return c.Status(fiber.ErrBadRequest.Code).JSON(common.ErrorResponse{
 			StatusCode: 400,

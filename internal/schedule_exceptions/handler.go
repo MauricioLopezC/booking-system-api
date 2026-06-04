@@ -86,7 +86,7 @@ func (h *ScheduleExHandler) CreateMyScheduleEx(c fiber.Ctx) error {
 // @Failure      401  {object}  common.ErrorResponse
 // @Router       /schedule-exceptions [get]
 func (h *ScheduleExHandler) FindAll(c fiber.Ctx) error {
-	limit := fiber.Query[int](c, "limit")
+	limit := fiber.Query(c, "limit", 10)
 	if limit <= 0 {
 		return c.Status(fiber.ErrBadRequest.Code).JSON(common.ErrorResponse{
 			StatusCode: fiber.StatusBadRequest,
@@ -94,7 +94,7 @@ func (h *ScheduleExHandler) FindAll(c fiber.Ctx) error {
 		})
 	}
 
-	page := fiber.Query[int](c, "page")
+	page := fiber.Query(c, "page", 1)
 	if page <= 0 {
 		return c.Status(fiber.ErrBadRequest.Code).JSON(common.ErrorResponse{
 			StatusCode: fiber.StatusBadRequest,
@@ -130,7 +130,7 @@ func (h *ScheduleExHandler) FindAll(c fiber.Ctx) error {
 // @Failure      401  {object}  common.ErrorResponse
 // @Router       /me/schedule-exceptions [get]
 func (h *ScheduleExHandler) FindMyScheduleExs(c fiber.Ctx) error {
-	limit := fiber.Query[int](c, "limit")
+	limit := fiber.Query(c, "limit", 10)
 	if limit <= 0 {
 		return c.Status(fiber.ErrBadRequest.Code).JSON(common.ErrorResponse{
 			StatusCode: fiber.StatusBadRequest,
@@ -138,7 +138,7 @@ func (h *ScheduleExHandler) FindMyScheduleExs(c fiber.Ctx) error {
 		})
 	}
 
-	page := fiber.Query[int](c, "page")
+	page := fiber.Query(c, "page", 1)
 	if page <= 0 {
 		return c.Status(fiber.ErrBadRequest.Code).JSON(common.ErrorResponse{
 			StatusCode: fiber.StatusBadRequest,

@@ -70,7 +70,7 @@ func (h *ServicesHandler) Create(c fiber.Ctx) error {
 // Use in GET /services endpoint, public route, use employeeId optional
 // param to get the employee services
 func (h *ServicesHandler) FindAll(c fiber.Ctx) error {
-	limit := fiber.Query[int](c, "limit")
+	limit := fiber.Query(c, "limit", 10)
 	if limit <= 0 {
 		return c.Status(fiber.StatusBadRequest).JSON(common.ErrorResponse{
 			StatusCode: fiber.StatusBadRequest,
@@ -78,7 +78,7 @@ func (h *ServicesHandler) FindAll(c fiber.Ctx) error {
 		})
 	}
 
-	page := fiber.Query[int](c, "page")
+	page := fiber.Query(c, "page", 1)
 	if page <= 0 {
 		return c.Status(fiber.StatusBadRequest).JSON(common.ErrorResponse{
 			StatusCode: fiber.StatusBadRequest,
@@ -179,6 +179,3 @@ func (h *ServicesHandler) Delete(c fiber.Ctx) error {
 	}
 	return c.Status(fiber.StatusOK).JSON(deletedService.ToResponse())
 }
-
-//TODO: find user services, connect service with employee
-//
