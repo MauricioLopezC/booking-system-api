@@ -906,10 +906,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/model.ScheduleResponse"
-                            }
+                            "$ref": "#/definitions/model.AllSchedulesResponse"
                         }
                     },
                     "400": {
@@ -1579,6 +1576,20 @@ const docTemplate = `{
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/model.ScheduleOverrideResponse"
+                    }
+                },
+                "metadata": {
+                    "$ref": "#/definitions/model.PaginationMetadata"
+                }
+            }
+        },
+        "model.AllSchedulesResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/model.ScheduleResponse"
                     }
                 },
                 "metadata": {

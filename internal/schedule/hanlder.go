@@ -81,7 +81,7 @@ func (h *ScheduleHandler) CreateMySchedule(c fiber.Ctx) error {
 // @Param        limit    query     int     true   "Items per page"
 // @Param        page     query     int     true   "Page number"
 // @Param        orderBy  query     string  false  "Sort field: updated_at | created_at"
-// @Success      200  {array}   model.ScheduleResponse
+// @Success      200  {object}  model.AllSchedulesResponse
 // @Failure      400  {object}  common.ErrorResponse
 // @Failure      401  {object}  common.ErrorResponse
 // @Router       /schedules [get]

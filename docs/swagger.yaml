@@ -91,6 +91,15 @@ definitions:
       metadata:
         $ref: '#/definitions/model.PaginationMetadata'
     type: object
+  model.AllSchedulesResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/model.ScheduleResponse'
+        type: array
+      metadata:
+        $ref: '#/definitions/model.PaginationMetadata'
+    type: object
   model.AllServicesResponse:
     properties:
       data:
@@ -880,9 +889,7 @@ paths:
         "200":
           description: OK
           schema:
-            items:
-              $ref: '#/definitions/model.ScheduleResponse'
-            type: array
+            $ref: '#/definitions/model.AllSchedulesResponse'
         "400":
           description: Bad Request
           schema:
