@@ -32,6 +32,7 @@ func (b Booking) ToResponse() BookingResponse {
 		EmployeeID:  b.EmployeeID,
 		ServiceID:   b.ServiceID,
 		BookingDate: b.BookingDate,
+		EndDate:     b.EndDate,
 		Status:      b.Status,
 		Notes:       b.Notes,
 		Customer:    b.Customer.ToResponse(),

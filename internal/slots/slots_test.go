@@ -49,7 +49,7 @@ func makePartialException(date time.Time, startH, startM, endH, endM int) model.
 func makeBooking(bookingDate time.Time, durationMinutes int) model.Booking {
 	return model.Booking{
 		BookingDate: bookingDate,
-		Service:     model.Service{Model: gorm.Model{ID: 99}, DurationMinutes: durationMinutes},
+		EndDate:     bookingDate.Add(time.Duration(durationMinutes) * time.Minute),
 	}
 }
 

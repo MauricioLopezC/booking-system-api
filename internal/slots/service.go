@@ -75,9 +75,12 @@ func (ss *SlotsService) FindAvailableSlots(employeeID, serviceID uint, startDate
 		exceptionMap[key] = append(exceptionMap[key], ex)
 	}
 
-	// step 4. get existing bookings
+	// step 4. get existing active bookings (cancelled/completed ones don't block slots)
 	bookings := []model.Booking{}
-	if result := ss.db.Preload("Service").Where("employee_id = ? AND booking_date >= ? AND booking_date < ?", employeeID, startDate, endExclusive).Find(&bookings); result.Error != nil {
+	if result := ss.db.Where(
+		"employee_id = ? AND status = ? AND booking_date < ? AND end_date > ?",
+		employeeID, model.StatusBooked.String(), endExclusive, startDate,
+	).Find(&bookings); result.Error != nil {
 		return nil, result.Error
 	}
 
@@ -150,7 +153,7 @@ func (ss *SlotsService) getSlots(
 				if !blocked {
 					for _, booking := range dayBookings {
 						existingStart := booking.BookingDate
-						existingEnd := booking.BookingDate.Add(time.Duration(booking.Service.DurationMinutes) * time.Minute)
+						existingEnd := booking.EndDate
 						currentEnd := current.Add(duration)
 						if existingStart.Before(currentEnd) && existingEnd.After(current) {
 							blocked = true

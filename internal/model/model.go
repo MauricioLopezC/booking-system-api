@@ -29,13 +29,17 @@ type Service struct {
 }
 
 // Booking Status: 'booked', 'cancelled', 'completed'
-// Creating unique index for EmployeeID and BookingDate
+// EndDate is copied from the service duration at creation time, so later changes
+// to the service don't alter existing bookings.
+// Overlapping active bookings are prevented by the bookings_no_overlap exclusion
+// constraint (see database.Migrate).
 type Booking struct {
 	gorm.Model
 	CustomerID  uint      `gorm:"not null"`
-	EmployeeID  uint      `gorm:"not null;uniqueIndex:idx_employee_bookingdate"`
+	EmployeeID  uint      `gorm:"not null;index:idx_bookings_employee_date"`
 	ServiceID   uint      `gorm:"not null"`
-	BookingDate time.Time `gorm:"not null;uniqueIndex:idx_employee_bookingdate"`
+	BookingDate time.Time `gorm:"not null;index:idx_bookings_employee_date"`
+	EndDate     time.Time `gorm:"not null"`
 	Status      string    `gorm:"not null"`
 	Notes       string
 	Customer    User    `gorm:"foreignKey:CustomerID"`

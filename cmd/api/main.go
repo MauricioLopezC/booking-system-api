@@ -1,13 +1,13 @@
 package main
 
 import (
+	"log"
 	"time"
 
 	"github.com/MauricioLopezC/ReservationSystem/config"
 	"github.com/MauricioLopezC/ReservationSystem/internal/auth"
 	"github.com/MauricioLopezC/ReservationSystem/internal/bookings"
 	"github.com/MauricioLopezC/ReservationSystem/internal/database"
-	"github.com/MauricioLopezC/ReservationSystem/internal/model"
 	"github.com/MauricioLopezC/ReservationSystem/internal/schedule"
 	scheduleexceptions "github.com/MauricioLopezC/ReservationSystem/internal/schedule_exceptions"
 	"github.com/MauricioLopezC/ReservationSystem/internal/services"
@@ -38,13 +38,9 @@ func main() {
 	config.Load()
 	app := fiber.New()
 	database.ConnectDB()
-	database.Migrate(
-		&model.User{},
-		&model.Service{},
-		&model.Schedule{},
-		&model.Booking{},
-		&model.ScheduleOverride{},
-	)
+	if err := database.Migrate(database.DB.Db); err != nil {
+		log.Fatalf("migrations failed: %v", err)
+	}
 
 	// handles and servicies
 	scheduleService := schedule.NewScheduleService(database.DB.Db)
@@ -79,5 +75,5 @@ func main() {
 		usersHandler,
 	)
 
-	app.Listen(":3000")
+	log.Fatal(app.Listen(":3000"))
 }

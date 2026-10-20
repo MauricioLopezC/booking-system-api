@@ -32,6 +32,7 @@ type BookingResponse struct {
 	EmployeeID  uint            `json:"employeeId"`
 	ServiceID   uint            `json:"serviceId"`
 	BookingDate time.Time       `json:"bookingDate"`
+	EndDate     time.Time       `json:"endDate"`
 	Status      string          `json:"status"`
 	Notes       string          `json:"notes"`
 	Customer    UserResponse    `json:"customer"`

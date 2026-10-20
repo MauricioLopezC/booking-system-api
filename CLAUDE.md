@@ -18,6 +18,11 @@ go test -v ./...                        # verbose
 go test -cover ./...                    # with coverage
 go test -run TestGetSlots ./internal/slots   # single test by name
 
+# Integration tests (skipped unless TEST_DATABASE_DSN is set).
+# They DROP the public schema of that database: use a throwaway one.
+docker run -d --rm --name reservation-test-db -e POSTGRES_PASSWORD=test -e POSTGRES_DB=reservation_test -p 127.0.0.1:55432:5432 postgres:17-alpine
+TEST_DATABASE_DSN="host=127.0.0.1 port=55432 user=postgres password=test dbname=reservation_test sslmode=disable" go test -p 1 ./...
+
 # Seed database
 go run ./cmd/seed           # seed with default data
 go run ./cmd/seed -reset    # truncate all tables then seed
@@ -50,7 +55,7 @@ REST API for a booking/reservation system. Stack: **Fiber v3** (HTTP), **GORM** 
 **Key packages under `internal/`:**
 - `auth/` — JWT login/register, bcrypt password hashing
 - `user/` — User CRUD, roles: `admin | employee | customer`
-- `bookings/` — Reservation management; unique index on `(employee_id, booking_date)` prevents double-booking; max 14 days ahead
+- `bookings/` — Reservation management; `EndDate` is stored at creation time; the `bookings_no_overlap` exclusion constraint (postgres, `btree_gist`) prevents overlapping active bookings per employee; max 14 days ahead
 - `schedule/` — Weekly recurring employee schedules (weekday + start/end time)
 - `schedule_exceptions/` — Overrides to base schedule (all-day or partial time blocks, with `IsAvailable` flag)
 - `slots/` — **Core business logic**: generates available time slots given an employee's schedule, exceptions, existing bookings, and service duration. Most heavily tested package.
@@ -59,7 +64,7 @@ REST API for a booking/reservation system. Stack: **Fiber v3** (HTTP), **GORM** 
 - `common/` — Shared error types (`ErrRecordNotFound`, `ErrValidation`, `ErrConflict`, `ErrUnauthorized`) and response structs
 - `utils/` — `TimeOfDay` (date-agnostic time value), validation helpers, time parsing
 
-**Database migrations** run automatically on every startup via `database.Migrate(...)` in `main.go`.
+**Database migrations** run automatically on every startup via `database.Migrate(db)` (AutoMigrate plus idempotent raw SQL for what AutoMigrate can't express, e.g. the exclusion constraint). The seed uses the same function.
 
 **Access control** (defined in `cmd/api/router.go`):
 - Public: `GET /api/services`, `GET /api/available-slots`
@@ -71,4 +76,4 @@ REST API for a booking/reservation system. Stack: **Fiber v3** (HTTP), **GORM** 
 
 ## Testing
 
-Tests use `stretchr/testify` with table-driven test cases. Coverage focuses on schedule overlap detection, slot generation edge cases (exceptions, existing bookings, past times), and `TimeOfDay` parsing. No mocking — business logic is tested as pure functions.
+Tests use `stretchr/testify` with table-driven test cases. Coverage focuses on schedule overlap detection, slot generation edge cases (exceptions, existing bookings, past times), and `TimeOfDay` parsing. No mocking — business logic is tested as pure functions; DB-level guarantees (overlap constraint, concurrency, migrations) are covered by integration tests using `testutil.OpenTestDB`.

@@ -6,6 +6,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/MauricioLopezC/ReservationSystem/internal/database"
 	"github.com/MauricioLopezC/ReservationSystem/internal/model"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
@@ -22,13 +23,7 @@ func Reset(db *gorm.DB) error {
 			return fmt.Errorf("seed reset: %w", err)
 		}
 	}
-	if err := db.AutoMigrate(
-		&model.User{},
-		&model.Service{},
-		&model.Schedule{},
-		&model.Booking{},
-		&model.ScheduleOverride{},
-	); err != nil {
+	if err := database.Migrate(db); err != nil {
 		return fmt.Errorf("seed reset migrate: %w", err)
 	}
 	log.Println("seed: schema dropped and recreated")
@@ -199,8 +194,14 @@ func SeedBookings(db *gorm.DB, customers []*model.User, employees []*model.User,
 		},
 	}
 
+	durations := make(map[uint]time.Duration)
+	for _, s := range services {
+		durations[s.ID] = time.Duration(s.DurationMinutes) * time.Minute
+	}
+
 	count := 0
 	for _, b := range seeds {
+		b.EndDate = b.BookingDate.Add(durations[b.ServiceID])
 		var existing model.Booking
 		tx := db.Where(model.Booking{EmployeeID: b.EmployeeID, BookingDate: b.BookingDate}).
 			FirstOrCreate(&existing, b)
