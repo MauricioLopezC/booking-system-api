@@ -21,10 +21,10 @@ type fixture struct {
 	service  model.Service
 	employee model.User
 	customer model.User
-	day      time.Time // tomorrow 00:00 UTC
+	day      time.Time // tomorrow 00:00 in the business timezone
 }
 
-// at returns tomorrow at hh:mm UTC.
+// at returns tomorrow at hh:mm in the business timezone.
 func (f fixture) at(h, m int) time.Time {
 	return f.day.Add(time.Duration(h)*time.Hour + time.Duration(m)*time.Minute)
 }
@@ -33,8 +33,13 @@ func (f fixture) dto(start time.Time) BookingDto {
 	return BookingDto{EmployeeID: f.employee.ID, ServiceID: f.service.ID, BookingDate: start}
 }
 
-// newFixture: one employee working tomorrow 08:00-20:00 offering a 60 min service.
+// newFixture: one employee working tomorrow 08:00-20:00 UTC offering a 60 min service.
 func newFixture(t *testing.T) fixture {
+	return newFixtureIn(t, time.UTC, 8, 20)
+}
+
+// newFixtureIn: like newFixture, with the business in loc and working openH-closeH local time.
+func newFixtureIn(t *testing.T, loc *time.Location, openH, closeH int) fixture {
 	db := testutil.OpenTestDB(t)
 
 	service := model.Service{Name: "Corte", DurationMinutes: 60, Price: 10}
@@ -46,18 +51,18 @@ func newFixture(t *testing.T) fixture {
 	require.NoError(t, db.Create(&customer).Error)
 	require.NoError(t, db.Model(&employee).Association("Services").Append(&service))
 
-	now := time.Now().UTC()
-	day := time.Date(now.Year(), now.Month(), now.Day()+1, 0, 0, 0, 0, time.UTC)
+	now := time.Now().In(loc)
+	day := time.Date(now.Year(), now.Month(), now.Day()+1, 0, 0, 0, 0, loc)
 	require.NoError(t, db.Create(&model.Schedule{
 		EmployeeID: employee.ID,
 		WeekDay:    int(day.Weekday()),
-		StartTime:  time.Date(0, 1, 1, 8, 0, 0, 0, time.UTC),
-		EndTime:    time.Date(0, 1, 1, 20, 0, 0, 0, time.UTC),
+		StartTime:  time.Date(0, 1, 1, openH, 0, 0, 0, time.UTC),
+		EndTime:    time.Date(0, 1, 1, closeH, 0, 0, 0, time.UTC),
 	}).Error)
 
 	return fixture{
 		db:       db,
-		svc:      NewBookingsService(db, slots.NewSlotsService(db, 30*time.Minute)),
+		svc:      NewBookingsService(db, slots.NewSlotsService(db, 30*time.Minute, loc)),
 		service:  service,
 		employee: employee,
 		customer: customer,
@@ -185,4 +190,43 @@ func TestAvailableExceptionExtendsWorkingHours(t *testing.T) {
 	booking, err := f.svc.CreateBooking(f.dto(f.at(20, 0)), f.customer.ID)
 	require.NoError(t, err)
 	assert.True(t, booking.EndDate.Equal(f.at(21, 0)))
+}
+
+func TestBusinessTimezoneLateBooking(t *testing.T) {
+	art, err := time.LoadLocation("America/Argentina/Buenos_Aires")
+	require.NoError(t, err)
+	f := newFixtureIn(t, art, 18, 22)
+
+	// 21:00 in Argentina is 00:00Z of the next UTC day, but it belongs to f.day locally.
+	booking, err := f.svc.CreateBooking(f.dto(f.at(21, 0)), f.customer.ID)
+	require.NoError(t, err)
+	assert.Equal(t, f.day.AddDate(0, 0, 1).Format(time.DateOnly), booking.BookingDate.UTC().Format(time.DateOnly))
+
+	available, err := f.svc.slotsService.FindAvailableSlots(f.employee.ID, f.service.ID, f.day, f.day)
+	require.NoError(t, err)
+	assert.Len(t, available, 1, "all slots grouped under the local date")
+	for _, slot := range available[f.day.Format(time.DateOnly)] {
+		assert.False(t, slot.After(f.at(20, 30)) && slot.Before(f.at(22, 0)), "slot %s overlaps the 21:00 booking", slot)
+	}
+}
+
+func TestBusinessTimezoneAllDayException(t *testing.T) {
+	art, err := time.LoadLocation("America/Argentina/Buenos_Aires")
+	require.NoError(t, err)
+	f := newFixtureIn(t, art, 18, 22)
+
+	// The exception is a calendar date: it must block the whole local day,
+	// including 21:00-22:00 which is already the next day in UTC.
+	date, err := time.Parse(time.DateOnly, f.day.Format(time.DateOnly))
+	require.NoError(t, err)
+	require.NoError(t, f.db.Create(&model.ScheduleOverride{
+		EmployeeID: f.employee.ID, Date: date, Reason: "feriado", AllDay: true,
+	}).Error)
+
+	available, err := f.svc.slotsService.FindAvailableSlots(f.employee.ID, f.service.ID, f.day, f.day)
+	require.NoError(t, err)
+	assert.Empty(t, available)
+
+	_, err = f.svc.CreateBooking(f.dto(f.at(21, 0)), f.customer.ID)
+	assert.ErrorIs(t, err, common.ErrConflict)
 }

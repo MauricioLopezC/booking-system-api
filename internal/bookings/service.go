@@ -24,8 +24,8 @@ func NewBookingsService(db *gorm.DB, slotsS *slots.SlotsService) *BookingsServic
 const MaxBookingDateDays = 14
 
 func (bs *BookingsService) CreateBooking(bookingDto BookingDto, customerID uint) (*model.Booking, error) {
-	// Normalize to UTC: slots are UTC instants and the date key must be the UTC date,
-	// regardless of the offset the client sent (e.g. 09:00-03:00 == 12:00Z).
+	// Normalize to UTC: slots are UTC instants, regardless of the offset the client
+	// sent (e.g. 09:00-03:00 == 12:00Z).
 	bookingDate := bookingDto.BookingDate.UTC()
 
 	// check if booking date is greater than now, and is Before new two weeks
@@ -51,7 +51,7 @@ func (bs *BookingsService) CreateBooking(bookingDto BookingDto, customerID uint)
 		return nil, err
 	}
 
-	bookingDateKey := bookingDate.Format(time.DateOnly)
+	bookingDateKey := bs.slotsService.DateKey(bookingDate)
 	daySlots, ok := availableSlots[bookingDateKey]
 	if !ok {
 		return nil, fmt.Errorf("%w: %s", common.ErrConflict, "There are no available appointments for the booking date")

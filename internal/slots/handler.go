@@ -52,7 +52,7 @@ func (h *SlotsHandler) FindAvailableSlots(c fiber.Ctx) error {
 			Message:    "Required query parameter: endDate",
 		})
 	}
-	endDate, err := time.Parse(time.DateOnly, endDateQuery)
+	endDate, err := time.ParseInLocation(time.DateOnly, endDateQuery, h.slotsService.Location())
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(common.ErrorResponse{
 			StatusCode: fiber.StatusBadRequest,

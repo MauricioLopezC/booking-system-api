@@ -71,10 +71,20 @@ func Migrate(db *gorm.DB) error {
 	return nil
 }
 
-// preMigrate adds bookings.end_date to existing databases before AutoMigrate,
-// which can't add a NOT NULL column to a table that already has rows.
+// preMigrate prepares existing databases for changes AutoMigrate can't do safely:
+//   - adds bookings.end_date (a NOT NULL column can't be added to a table with rows)
+//   - turns schedule_overrides.date from timestamptz into date, casting in UTC
+//     (where the old values were stored at midnight) instead of the session timezone
 func preMigrate(db *gorm.DB) error {
 	return execAll(db,
+		`DO $$ BEGIN
+			IF EXISTS (
+				SELECT 1 FROM information_schema.columns
+				WHERE table_name = 'schedule_overrides' AND column_name = 'date' AND data_type <> 'date'
+			) THEN
+				ALTER TABLE schedule_overrides ALTER COLUMN date TYPE date USING (date AT TIME ZONE 'UTC')::date;
+			END IF;
+		END $$`,
 		`ALTER TABLE IF EXISTS bookings ADD COLUMN IF NOT EXISTS end_date timestamptz`,
 		`DO $$ BEGIN
 			IF to_regclass('bookings') IS NOT NULL THEN

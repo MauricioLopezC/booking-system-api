@@ -17,6 +17,7 @@ import (
 	"github.com/gofiber/fiber/v3"
 
 	_ "github.com/MauricioLopezC/ReservationSystem/docs"
+	_ "time/tzdata" // BUSINESS_TIMEZONE works even on images without system tzdata
 )
 
 // @title           Reservation System API
@@ -33,7 +34,8 @@ import (
 func main() {
 	// Force the process-wide local timezone to UTC so that time.Local, time.Now(),
 	// and all time.ParseInLocation(..., time.Local) calls are consistent with the
-	// UTC timestamps stored in the database.
+	// UTC timestamps stored in the database (postgres time columns are read in time.Local).
+	// The business timezone is a separate setting: BUSINESS_TIMEZONE.
 	time.Local = time.UTC
 
 	config.Load()
@@ -51,7 +53,11 @@ func main() {
 	if err != nil || slotStep <= 0 {
 		log.Fatalf("SLOT_STEP_MINUTES must be a positive integer")
 	}
-	slotsService := slots.NewSlotsService(database.DB.Db, time.Duration(slotStep)*time.Minute)
+	businessLoc, err := time.LoadLocation(config.Get("BUSINESS_TIMEZONE", "UTC"))
+	if err != nil {
+		log.Fatalf("invalid BUSINESS_TIMEZONE: %v", err)
+	}
+	slotsService := slots.NewSlotsService(database.DB.Db, time.Duration(slotStep)*time.Minute, businessLoc)
 	slotsHandler := slots.NewSlotsHandler(slotsService)
 
 	bookingsService := bookings.NewBookingsService(database.DB.Db, slotsService)
@@ -63,7 +69,7 @@ func main() {
 	authService := auth.NewAuthService(database.DB.Db)
 	authHandler := auth.NewAuthHandler(authService)
 
-	scheduleExService := scheduleexceptions.NewScheduleExService(database.DB.Db)
+	scheduleExService := scheduleexceptions.NewScheduleExService(database.DB.Db, businessLoc)
 	scheduleExHandler := scheduleexceptions.NewScheduleExHandler(scheduleExService)
 
 	usersService := user.NewUsersService(database.DB.Db)

@@ -44,7 +44,9 @@ DB_NAME=reservation-system
 SECRET=<jwt_secret_key>
 ```
 
-All 6 variables are mandatory — startup fails if any are missing. Optional: `SLOT_STEP_MINUTES` (default 15), the grid between offered slot start times. Timezone is forced to UTC at startup.
+All 6 variables are mandatory — startup fails if any are missing. Optional:
+- `SLOT_STEP_MINUTES` (default 15): grid between offered slot start times.
+- `BUSINESS_TIMEZONE` (default `UTC`, IANA name like `America/Argentina/Buenos_Aires`): schedules and exceptions are wall-clock times in this zone; slot days are local dates; instants are stored and returned in UTC. The process timezone (`time.Local`) is forced to UTC at startup because postgres `time` columns are read in `time.Local`; this is independent of `BUSINESS_TIMEZONE`.
 
 ## Architecture
 

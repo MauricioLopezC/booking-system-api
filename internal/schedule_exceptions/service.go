@@ -12,11 +12,16 @@ import (
 )
 
 type ScheduleExService struct {
-	db *gorm.DB
+	db  *gorm.DB
+	loc *time.Location // business timezone, defines what "today" is
 }
 
-func NewScheduleExService(db *gorm.DB) *ScheduleExService {
-	return &ScheduleExService{db: db}
+func NewScheduleExService(db *gorm.DB, loc *time.Location) *ScheduleExService {
+	return &ScheduleExService{db: db, loc: loc}
+}
+
+func (ss *ScheduleExService) today() string {
+	return time.Now().In(ss.loc).Format(time.DateOnly)
 }
 
 func (ss *ScheduleExService) Create(userID uint, scheduleExDto CreateScheduleExDto) (*model.ScheduleOverride, error) {
@@ -61,8 +66,8 @@ func (ss *ScheduleExService) Create(userID uint, scheduleExDto CreateScheduleExD
 		return nil, fmt.Errorf("%w: %s", common.ErrValidation, "end time must be greater than the start time")
 	}
 
-	// Date > today date
-	if !time.Now().UTC().Before(dtoDate) {
+	// Date > today date (both YYYY-MM-DD, so string comparison is chronological)
+	if scheduleExDto.Date <= ss.today() {
 		return nil, fmt.Errorf("%w: %s", common.ErrValidation, "exception date must be greater than current date")
 	}
 
@@ -163,10 +168,10 @@ func (ss *ScheduleExService) FindByUserID(limit, page int, orderBy string, userI
 	}
 
 	schedules := []model.ScheduleOverride{}
-	query.Where("date > ? AND employee_id = ?", time.Now().UTC(), userID).Find(&schedules)
+	query.Where("date >= ? AND employee_id = ?", ss.today(), userID).Find(&schedules)
 
 	var count int64
-	ss.db.Model(&model.Schedule{}).Where("date > ? AND employee_id = ?", time.Now().UTC(), userID).Count(&count)
+	ss.db.Model(&model.ScheduleOverride{}).Where("date >= ? AND employee_id = ?", ss.today(), userID).Count(&count)
 
 	return &AllSchedules{
 		Data:     schedules,

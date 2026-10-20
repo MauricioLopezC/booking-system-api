@@ -36,10 +36,11 @@ func (t TimeOfDay) String() string {
 	return fmt.Sprintf("%02d:%02d:%02d", t.Hour, t.Minute, t.Second)
 }
 
-// ToTimeOnDate construye un time.Time UTC combinando esta hora con la fecha de day.
+// ToTimeOnDate construye un time.Time combinando esta hora con la fecha de day,
+// en la zona horaria de day (la hora se interpreta como hora de pared en esa zona).
 func (t TimeOfDay) ToTimeOnDate(day time.Time) time.Time {
 	return time.Date(day.Year(), day.Month(), day.Day(),
-		t.Hour, t.Minute, t.Second, 0, time.UTC)
+		t.Hour, t.Minute, t.Second, 0, day.Location())
 }
 
 // Before informa si esta hora es anterior a other.

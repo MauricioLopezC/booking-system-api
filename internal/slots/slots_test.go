@@ -73,7 +73,7 @@ func formatSlots(slots []time.Time) []string {
 //
 // El horario base es martes 08:00-10:00 con servicio de 30 min → slots 08:00, 08:30, 09:00, 09:30.
 func TestGetSlots(t *testing.T) {
-	ss := NewSlotsService(nil, 30*time.Minute)
+	ss := NewSlotsService(nil, 30*time.Minute, time.UTC)
 
 	// 2030-01-01 es martes.
 	tue := time.Date(2030, 1, 8, 0, 0, 0, 0, time.UTC)
@@ -526,7 +526,7 @@ func makeAvailableException(date time.Time, startH, startM, endH, endM int) mode
 // TestGetSlotsStepAndAvailability cubre el paso de 15 min y las excepciones IsAvailable.
 // Martes 2030-01-08 con horario base 08:00-10:00.
 func TestGetSlotsStepAndAvailability(t *testing.T) {
-	ss := NewSlotsService(nil, 15*time.Minute)
+	ss := NewSlotsService(nil, 15*time.Minute, time.UTC)
 
 	tue := time.Date(2030, 1, 8, 0, 0, 0, 0, time.UTC)
 	wed := time.Date(2030, 1, 9, 0, 0, 0, 0, time.UTC)
@@ -615,4 +615,62 @@ func TestGetSlotsStepAndAvailability(t *testing.T) {
 			assert.Equal(t, tc.want, got)
 		})
 	}
+}
+
+// TestGetSlotsBusinessTimezone: los horarios son hora local del negocio y los
+// slots se devuelven como instantes UTC agrupados por fecha local.
+func TestGetSlotsBusinessTimezone(t *testing.T) {
+	t.Run("Argentina: horario 18-22 cruza la medianoche UTC pero queda en el mismo día local", func(t *testing.T) {
+		art, err := time.LoadLocation("America/Argentina/Buenos_Aires")
+		require.NoError(t, err)
+		ss := NewSlotsService(nil, 60*time.Minute, art)
+
+		tue := time.Date(2030, 1, 8, 0, 0, 0, 0, art)
+		result := ss.getSlots(tue, tue, model.Service{DurationMinutes: 60},
+			map[time.Weekday][]model.Schedule{time.Tuesday: {makeSchedule(18, 0, 22, 0)}}, nil, nil)
+
+		require.Len(t, result, 1)
+		require.Contains(t, result, "2030-01-08")
+		assert.Equal(t, []string{
+			"2030-01-08 21:00",
+			"2030-01-08 22:00",
+			"2030-01-08 23:00",
+			"2030-01-09 00:00", // 21:00 hora argentina
+		}, formatSlots(result["2030-01-08"]))
+		for _, slot := range result["2030-01-08"] {
+			assert.Equal(t, time.UTC, slot.Location(), "los slots se devuelven en UTC")
+		}
+	})
+
+	t.Run("Madrid: el cambio de horario mantiene las 08:00 locales", func(t *testing.T) {
+		madrid, err := time.LoadLocation("Europe/Madrid")
+		require.NoError(t, err)
+		ss := NewSlotsService(nil, 60*time.Minute, madrid)
+
+		// 2030-03-31 (domingo) a las 02:00 Europa pasa de CET (+1) a CEST (+2).
+		sat := time.Date(2030, 3, 30, 0, 0, 0, 0, madrid)
+		sun := time.Date(2030, 3, 31, 0, 0, 0, 0, madrid)
+		schedule := map[time.Weekday][]model.Schedule{
+			time.Saturday: {makeSchedule(8, 0, 9, 0)},
+			time.Sunday:   {makeSchedule(8, 0, 9, 0)},
+		}
+		result := ss.getSlots(sat, sun, model.Service{DurationMinutes: 60}, schedule, nil, nil)
+
+		assert.Equal(t, []string{"2030-03-30 07:00"}, formatSlots(result["2030-03-30"]))
+		assert.Equal(t, []string{"2030-03-31 06:00"}, formatSlots(result["2030-03-31"]))
+	})
+
+	t.Run("excepción parcial en hora local", func(t *testing.T) {
+		art, err := time.LoadLocation("America/Argentina/Buenos_Aires")
+		require.NoError(t, err)
+		ss := NewSlotsService(nil, 60*time.Minute, art)
+
+		tue := time.Date(2030, 1, 8, 0, 0, 0, 0, art)
+		result := ss.getSlots(tue, tue, model.Service{DurationMinutes: 60},
+			map[time.Weekday][]model.Schedule{time.Tuesday: {makeSchedule(18, 0, 22, 0)}},
+			map[string][]model.ScheduleOverride{"2030-01-08": {makePartialException(tue, 19, 0, 21, 0)}},
+			nil)
+
+		assert.Equal(t, []string{"2030-01-08 21:00", "2030-01-09 00:00"}, formatSlots(result["2030-01-08"]))
+	})
 }

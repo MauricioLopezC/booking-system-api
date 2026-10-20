@@ -12,25 +12,47 @@ import (
 
 type SlotsService struct {
 	db   *gorm.DB
-	step time.Duration // grid between slot start times, see slotStarts
+	step time.Duration  // grid between slot start times, see slotStarts
+	loc  *time.Location // business timezone: schedules and exceptions are wall-clock times in it
 }
 
 const DefaultSlotStep = 15 * time.Minute
 
-func NewSlotsService(db *gorm.DB, step time.Duration) *SlotsService {
+func NewSlotsService(db *gorm.DB, step time.Duration, loc *time.Location) *SlotsService {
 	if step <= 0 {
 		step = DefaultSlotStep
 	}
-	return &SlotsService{db: db, step: step}
+	if loc == nil {
+		loc = time.UTC
+	}
+	return &SlotsService{db: db, step: step, loc: loc}
 }
 
-type SlotMap map[string][]time.Time // fecha en formato YYYY-MM-DD
+// Location returns the business timezone.
+func (ss *SlotsService) Location() *time.Location {
+	return ss.loc
+}
+
+// DateKey returns the business-timezone calendar date of t, the key used in SlotMap.
+func (ss *SlotsService) DateKey(t time.Time) string {
+	return t.In(ss.loc).Format(time.DateOnly)
+}
+
+// localMidnight returns the start of t's calendar day in the business timezone.
+func (ss *SlotsService) localMidnight(t time.Time) time.Time {
+	t = t.In(ss.loc)
+	return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, ss.loc)
+}
+
+type SlotMap map[string][]time.Time // fecha local del negocio en formato YYYY-MM-DD -> instantes UTC
 
 const MaxDaysRange = 14
 
+// FindAvailableSlots returns the free slots between the business-timezone calendar
+// days of startDate and endDate (both inclusive).
 func (ss *SlotsService) FindAvailableSlots(employeeID, serviceID uint, startDate, endDate time.Time) (SlotMap, error) {
-	startDate = time.Date(startDate.Year(), startDate.Month(), startDate.Day(), 0, 0, 0, 0, time.UTC)
-	endDate = time.Date(endDate.Year(), endDate.Month(), endDate.Day(), 0, 0, 0, 0, time.UTC)
+	startDate = ss.localMidnight(startDate)
+	endDate = ss.localMidnight(endDate)
 	endExclusive := endDate.AddDate(0, 0, 1)
 
 	if endDate.After(startDate.AddDate(0, 0, MaxDaysRange)) {
@@ -70,14 +92,17 @@ func (ss *SlotsService) FindAvailableSlots(employeeID, serviceID uint, startDate
 
 	// step 3. get schedules exceptions/overrides in date range (both blocking and extra availability)
 	exceptions := []model.ScheduleOverride{}
-	if result := ss.db.Where("employee_id = ? AND date >= ? AND date < ?", employeeID, startDate, endExclusive).Find(&exceptions); result.Error != nil {
+	if result := ss.db.Where(
+		"employee_id = ? AND date BETWEEN ? AND ?",
+		employeeID, startDate.Format(time.DateOnly), endDate.Format(time.DateOnly),
+	).Find(&exceptions); result.Error != nil {
 		return nil, result.Error
 	}
 
 	// Indexing exceptions by date
 	exceptionMap := make(map[string][]model.ScheduleOverride)
 	for _, ex := range exceptions {
-		key := ex.Date.Format("2006-01-02")
+		key := ex.Date.Format(time.DateOnly) // date column: no timezone conversion
 		exceptionMap[key] = append(exceptionMap[key], ex)
 	}
 
@@ -93,7 +118,7 @@ func (ss *SlotsService) FindAvailableSlots(employeeID, serviceID uint, startDate
 	// Indexing existing bookings
 	bookingsMap := make(map[string][]model.Booking)
 	for _, booking := range bookings {
-		key := booking.BookingDate.Format("2006-01-02")
+		key := ss.DateKey(booking.BookingDate)
 		bookingsMap[key] = append(bookingsMap[key], booking)
 	}
 
@@ -113,13 +138,18 @@ func (ss *SlotsService) getSlots(
 ) SlotMap {
 	slotMap := make(SlotMap)
 	duration := time.Duration(service.DurationMinutes) * time.Minute
-	now := time.Now().UTC()
+	now := time.Now()
 
+	// startDate and endDate are midnights in ss.loc; AddDate keeps the wall clock across DST changes
 	for day := startDate; !day.After(endDate); day = day.AddDate(0, 0, 1) {
 		dateKey := day.Format(time.DateOnly)
 		free := freeIntervals(day, weeklySchedule[day.Weekday()], exceptionMap[dateKey], bookingsMap[dateKey])
 
-		if dailySlots := slotStarts(free, duration, ss.step, day, now); len(dailySlots) > 0 {
+		dailySlots := slotStarts(free, duration, ss.step, day, now)
+		for i := range dailySlots {
+			dailySlots[i] = dailySlots[i].UTC()
+		}
+		if len(dailySlots) > 0 {
 			slotMap[dateKey] = dailySlots
 		}
 	}
@@ -162,7 +192,7 @@ func freeIntervals(
 	return subtractIntervals(mergeIntervals(open), mergeIntervals(busy))
 }
 
-// timeRangeOnDate places a time-of-day range (dates ignored) on day.
+// timeRangeOnDate places a time-of-day range (dates ignored) on day, in day's timezone.
 func timeRangeOnDate(day, start, end time.Time) Interval {
 	return Interval{
 		Start: utils.NewTimeOfDay(start).ToTimeOnDate(day),

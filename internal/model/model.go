@@ -62,7 +62,7 @@ type Schedule struct {
 type ScheduleOverride struct {
 	gorm.Model
 	EmployeeID  uint      `gorm:"not null"`
-	Date        time.Time `gorm:"not null"`
+	Date        time.Time `gorm:"not null;type:date"` // calendar date in the business timezone
 	Reason      string    `gorm:"not null"`
 	AllDay      bool      `gorm:"not null;default:false"`
 	StartTime   *time.Time

@@ -46,3 +46,29 @@ func TestMigrateUpgradesLegacyBookings(t *testing.T) {
 		BookingDate: start, EndDate: start.Add(45 * time.Minute), Status: model.StatusBooked.String(),
 	}).Error)
 }
+
+// schedule_overrides.date used to be a timestamptz at midnight UTC; it must become
+// the same calendar date even when the session timezone is behind UTC.
+func TestMigrateConvertsExceptionDateToDate(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+
+	require.NoError(t, db.Exec(`ALTER TABLE schedule_overrides ALTER COLUMN date TYPE timestamptz`).Error)
+	user := model.User{Name: "u", Email: "u@test.com", Phone: "1", Password: "x"}
+	require.NoError(t, db.Create(&user).Error)
+	require.NoError(t, db.Exec(
+		`INSERT INTO schedule_overrides (created_at, updated_at, employee_id, date, reason, all_day)
+		 VALUES (now(), now(), ?, '2030-01-08 00:00:00+00', 'x', true)`, user.ID).Error)
+
+	// One connection, so the session timezone applies to the migration too.
+	sqlDB, err := db.DB()
+	require.NoError(t, err)
+	sqlDB.SetMaxOpenConns(1)
+	require.NoError(t, db.Exec(`SET TIME ZONE 'America/Argentina/Buenos_Aires'`).Error)
+	require.NoError(t, database.Migrate(db))
+
+	var dataType, date string
+	db.Raw(`SELECT data_type FROM information_schema.columns WHERE table_name = 'schedule_overrides' AND column_name = 'date'`).Scan(&dataType)
+	db.Raw(`SELECT date::text FROM schedule_overrides`).Scan(&date)
+	assert.Equal(t, "date", dataType)
+	assert.Equal(t, "2030-01-08", date)
+}
