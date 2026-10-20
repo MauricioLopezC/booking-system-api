@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"strconv"
 	"time"
 
 	"github.com/MauricioLopezC/ReservationSystem/config"
@@ -46,7 +47,11 @@ func main() {
 	scheduleService := schedule.NewScheduleService(database.DB.Db)
 	scheduleHandler := schedule.NewScheduleHandler(scheduleService)
 
-	slotsService := slots.NewSlotsService(database.DB.Db)
+	slotStep, err := strconv.Atoi(config.Get("SLOT_STEP_MINUTES", "15"))
+	if err != nil || slotStep <= 0 {
+		log.Fatalf("SLOT_STEP_MINUTES must be a positive integer")
+	}
+	slotsService := slots.NewSlotsService(database.DB.Db, time.Duration(slotStep)*time.Minute)
 	slotsHandler := slots.NewSlotsHandler(slotsService)
 
 	bookingsService := bookings.NewBookingsService(database.DB.Db, slotsService)

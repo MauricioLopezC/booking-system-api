@@ -44,7 +44,7 @@ DB_NAME=reservation-system
 SECRET=<jwt_secret_key>
 ```
 
-All 6 variables are mandatory — startup fails if any are missing. Timezone is forced to UTC at startup.
+All 6 variables are mandatory — startup fails if any are missing. Optional: `SLOT_STEP_MINUTES` (default 15), the grid between offered slot start times. Timezone is forced to UTC at startup.
 
 ## Architecture
 
@@ -58,7 +58,7 @@ REST API for a booking/reservation system. Stack: **Fiber v3** (HTTP), **GORM** 
 - `bookings/` — Reservation management; `EndDate` is stored at creation time; the `bookings_no_overlap` exclusion constraint (postgres, `btree_gist`) prevents overlapping active bookings per employee; max 14 days ahead
 - `schedule/` — Weekly recurring employee schedules (weekday + start/end time)
 - `schedule_exceptions/` — Overrides to base schedule (all-day or partial time blocks, with `IsAvailable` flag)
-- `slots/` — **Core business logic**: generates available time slots given an employee's schedule, exceptions, existing bookings, and service duration. Most heavily tested package.
+- `slots/` — **Core business logic**: per day, free time = (weekly schedule + `IsAvailable` exceptions) − (blocking exceptions + active bookings), computed with pure interval functions in `intervals.go`. Each free interval offers its own start and then points of a `SLOT_STEP_MINUTES` grid where the service fits. Most heavily tested package.
 - `services/` — Haircut/beauty services (name, duration_minutes, price); many-to-many with User
 - `model/` — All GORM model definitions and enums in one file
 - `common/` — Shared error types (`ErrRecordNotFound`, `ErrValidation`, `ErrConflict`, `ErrUnauthorized`) and response structs

@@ -57,7 +57,7 @@ func newFixture(t *testing.T) fixture {
 
 	return fixture{
 		db:       db,
-		svc:      NewBookingsService(db, slots.NewSlotsService(db)),
+		svc:      NewBookingsService(db, slots.NewSlotsService(db, 30*time.Minute)),
 		service:  service,
 		employee: employee,
 		customer: customer,
@@ -166,4 +166,23 @@ func TestBookingKeepsItsDurationWhenServiceChanges(t *testing.T) {
 	for _, slot := range available[f.day.Format(time.DateOnly)] {
 		assert.False(t, !slot.Before(f.at(10, 0)) && slot.Before(f.at(11, 0)), "slot %s overlaps the existing booking", slot)
 	}
+}
+
+func TestAvailableExceptionExtendsWorkingHours(t *testing.T) {
+	f := newFixture(t)
+
+	// Base schedule ends at 20:00; the exception adds 20:00-21:00 tomorrow.
+	_, err := f.svc.CreateBooking(f.dto(f.at(20, 0)), f.customer.ID)
+	require.ErrorIs(t, err, common.ErrConflict)
+
+	start := time.Date(0, 1, 1, 20, 0, 0, 0, time.UTC)
+	end := time.Date(0, 1, 1, 21, 0, 0, 0, time.UTC)
+	require.NoError(t, f.db.Create(&model.ScheduleOverride{
+		EmployeeID: f.employee.ID, Date: f.day, Reason: "turno extra",
+		StartTime: &start, EndTime: &end, IsAvailable: true,
+	}).Error)
+
+	booking, err := f.svc.CreateBooking(f.dto(f.at(20, 0)), f.customer.ID)
+	require.NoError(t, err)
+	assert.True(t, booking.EndDate.Equal(f.at(21, 0)))
 }

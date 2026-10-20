@@ -20,6 +20,10 @@ func NewScheduleExService(db *gorm.DB) *ScheduleExService {
 }
 
 func (ss *ScheduleExService) Create(userID uint, scheduleExDto CreateScheduleExDto) (*model.ScheduleOverride, error) {
+	if scheduleExDto.IsAvailable && scheduleExDto.AllDay {
+		return nil, fmt.Errorf("%w: %s", common.ErrValidation, "an available exception must define startTime and endTime, allDay is only for days off")
+	}
+
 	dtoDate, _ := time.Parse(time.DateOnly, scheduleExDto.Date)
 	schedulesFound := []model.ScheduleOverride{}
 	ss.db.Where("DATE(date) = ? AND employee_id = ?", scheduleExDto.Date, userID).Find(&schedulesFound)
@@ -81,12 +85,13 @@ func (ss *ScheduleExService) Create(userID uint, scheduleExDto CreateScheduleExD
 	}
 
 	scheduleEx := model.ScheduleOverride{
-		EmployeeID: userID,
-		Date:       dtoDate,
-		Reason:     scheduleExDto.Reason,
-		AllDay:     scheduleExDto.AllDay,
-		StartTime:  &dtoStartTime,
-		EndTime:    &dtoEndTime,
+		EmployeeID:  userID,
+		Date:        dtoDate,
+		Reason:      scheduleExDto.Reason,
+		AllDay:      scheduleExDto.AllDay,
+		StartTime:   &dtoStartTime,
+		EndTime:     &dtoEndTime,
+		IsAvailable: scheduleExDto.IsAvailable,
 	}
 
 	if result := ss.db.Create(&scheduleEx); result.Error != nil {

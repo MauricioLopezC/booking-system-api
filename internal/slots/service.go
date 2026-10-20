@@ -11,11 +11,17 @@ import (
 )
 
 type SlotsService struct {
-	db *gorm.DB
+	db   *gorm.DB
+	step time.Duration // grid between slot start times, see slotStarts
 }
 
-func NewSlotsService(db *gorm.DB) *SlotsService {
-	return &SlotsService{db: db}
+const DefaultSlotStep = 15 * time.Minute
+
+func NewSlotsService(db *gorm.DB, step time.Duration) *SlotsService {
+	if step <= 0 {
+		step = DefaultSlotStep
+	}
+	return &SlotsService{db: db, step: step}
 }
 
 type SlotMap map[string][]time.Time // fecha en formato YYYY-MM-DD
@@ -62,9 +68,9 @@ func (ss *SlotsService) FindAvailableSlots(employeeID, serviceID uint, startDate
 		weeklySchedule[weekday] = append(weeklySchedule[weekday], schedule)
 	}
 
-	// step 3. get schedules exceptions/overrides in date range
+	// step 3. get schedules exceptions/overrides in date range (both blocking and extra availability)
 	exceptions := []model.ScheduleOverride{}
-	if result := ss.db.Where("employee_id = ? AND date >= ? AND date < ? AND is_available = ?", employeeID, startDate, endExclusive, false).Find(&exceptions); result.Error != nil {
+	if result := ss.db.Where("employee_id = ? AND date >= ? AND date < ?", employeeID, startDate, endExclusive).Find(&exceptions); result.Error != nil {
 		return nil, result.Error
 	}
 
@@ -109,69 +115,57 @@ func (ss *SlotsService) getSlots(
 	duration := time.Duration(service.DurationMinutes) * time.Minute
 	now := time.Now().UTC()
 
-	// Loop over each range day
 	for day := startDate; !day.After(endDate); day = day.AddDate(0, 0, 1) {
-		weekday := day.Weekday()
-		dateKey := day.Format("2006-01-02")
-		dailySchedule := weeklySchedule[weekday]
-		dayExceptions := exceptionMap[dateKey]
-		dayBookings := bookingsMap[dateKey]
+		dateKey := day.Format(time.DateOnly)
+		free := freeIntervals(day, weeklySchedule[day.Weekday()], exceptionMap[dateKey], bookingsMap[dateKey])
 
-		var dailySlots []time.Time
-		for _, schedule := range dailySchedule {
-			// schedule time interval, for example [start, end] = [08:00, 14:00], [start, end] = [16:00, 20:00]
-			start := utils.NewTimeOfDay(schedule.StartTime).ToTimeOnDate(day)
-			end := utils.NewTimeOfDay(schedule.EndTime).ToTimeOnDate(day)
-			for current := start; current.Add(duration).Before(end) || current.Add(duration).Equal(end); current = current.Add(duration) {
-				// current is the start of current slot for example (duration 30min);  08:00, 08:30, 09:00, ...
-				if current.Before(now) {
-					continue
-				}
-
-				blocked := false
-
-				// check exceptions
-				for _, ex := range dayExceptions {
-					if ex.AllDay {
-						blocked = true
-						break
-					}
-
-					if ex.StartTime == nil || ex.EndTime == nil {
-						continue
-					}
-
-					exStart := utils.NewTimeOfDay(*ex.StartTime).ToTimeOnDate(day)
-					exEnd := utils.NewTimeOfDay(*ex.EndTime).ToTimeOnDate(day)
-					if current.Before(exEnd) && current.Add(duration).After(exStart) {
-						blocked = true
-						break
-					}
-				}
-
-				// check bookings
-				if !blocked {
-					for _, booking := range dayBookings {
-						existingStart := booking.BookingDate
-						existingEnd := booking.EndDate
-						currentEnd := current.Add(duration)
-						if existingStart.Before(currentEnd) && existingEnd.After(current) {
-							blocked = true
-							break
-						}
-					}
-				}
-
-				if !blocked {
-					dailySlots = append(dailySlots, current.UTC())
-				}
-
-			}
-		}
-		if len(dailySlots) > 0 {
+		if dailySlots := slotStarts(free, duration, ss.step, day, now); len(dailySlots) > 0 {
 			slotMap[dateKey] = dailySlots
 		}
 	}
 
 	return slotMap
+}
+
+// freeIntervals computes the employee's free time on day:
+// (weekly schedule + available exceptions) - (blocking exceptions + bookings).
+func freeIntervals(
+	day time.Time,
+	schedules []model.Schedule,
+	exceptions []model.ScheduleOverride,
+	bookings []model.Booking,
+) []Interval {
+	var open, busy []Interval
+
+	for _, schedule := range schedules {
+		open = append(open, timeRangeOnDate(day, schedule.StartTime, schedule.EndTime))
+	}
+
+	for _, ex := range exceptions {
+		if ex.AllDay && !ex.IsAvailable {
+			return nil // day off
+		}
+		if ex.StartTime == nil || ex.EndTime == nil {
+			continue
+		}
+		if ex.IsAvailable {
+			open = append(open, timeRangeOnDate(day, *ex.StartTime, *ex.EndTime))
+		} else {
+			busy = append(busy, timeRangeOnDate(day, *ex.StartTime, *ex.EndTime))
+		}
+	}
+
+	for _, booking := range bookings {
+		busy = append(busy, Interval{Start: booking.BookingDate, End: booking.EndDate})
+	}
+
+	return subtractIntervals(mergeIntervals(open), mergeIntervals(busy))
+}
+
+// timeRangeOnDate places a time-of-day range (dates ignored) on day.
+func timeRangeOnDate(day, start, end time.Time) Interval {
+	return Interval{
+		Start: utils.NewTimeOfDay(start).ToTimeOnDate(day),
+		End:   utils.NewTimeOfDay(end).ToTimeOnDate(day),
+	}
 }

@@ -66,13 +66,14 @@ func formatSlots(slots []time.Time) []string {
 // TestGetSlots cubre los casos del algoritmo de generación de turnos.
 //
 // Fechas base (futuro garantizado, nunca filtradas por "ahora"):
-//   tue = 2030-01-08 (martes)
-//   wed = 2030-01-09 (miércoles)
-//   thu = 2030-01-10 (jueves)
+//
+//	tue = 2030-01-08 (martes)
+//	wed = 2030-01-09 (miércoles)
+//	thu = 2030-01-10 (jueves)
 //
 // El horario base es martes 08:00-10:00 con servicio de 30 min → slots 08:00, 08:30, 09:00, 09:30.
 func TestGetSlots(t *testing.T) {
-	ss := NewSlotsService(nil)
+	ss := NewSlotsService(nil, 30*time.Minute)
 
 	// 2030-01-01 es martes.
 	tue := time.Date(2030, 1, 8, 0, 0, 0, 0, time.UTC)
@@ -372,7 +373,7 @@ func TestGetSlots(t *testing.T) {
 			},
 		},
 		{
-			name:           "T15: reserva a las 08:15 solapa con slots 08:00 y 08:30, ambos bloqueados",
+			name:           "T15: reserva 08:15-08:45 bloquea 08:00 y 08:30; el hueco libre arranca en 08:45",
 			startDate:      tue,
 			endDate:        tue,
 			service:        svc30,
@@ -384,6 +385,7 @@ func TestGetSlots(t *testing.T) {
 			checkFn: func(t *testing.T, result SlotMap) {
 				require.Contains(t, result, "2030-01-08")
 				assert.Equal(t, []string{
+					"2030-01-08 08:45",
 					"2030-01-08 09:00",
 					"2030-01-08 09:30",
 				}, formatSlots(result["2030-01-08"]))
@@ -434,8 +436,8 @@ func TestGetSlots(t *testing.T) {
 			exceptionMap:   noExceptions,
 			bookingsMap: map[string][]model.Booking{
 				"2030-01-08": {
-					makeBooking(time.Date(2030, 1, 8, 8, 0, 0, 0, time.UTC), 30),  // bloquea 08:00
-					makeBooking(time.Date(2030, 1, 8, 9, 0, 0, 0, time.UTC), 30),  // bloquea 09:00
+					makeBooking(time.Date(2030, 1, 8, 8, 0, 0, 0, time.UTC), 30), // bloquea 08:00
+					makeBooking(time.Date(2030, 1, 8, 9, 0, 0, 0, time.UTC), 30), // bloquea 09:00
 				},
 			},
 			checkFn: func(t *testing.T, result SlotMap) {
@@ -483,7 +485,7 @@ func TestGetSlots(t *testing.T) {
 			},
 		},
 		{
-			name:           "T21: servicio de 60 min en bloque 08:00-10:00 → 2 slots, no 4",
+			name:           "T21: servicio de 60 min en bloque 08:00-10:00 con paso 30 → 08:00, 08:30, 09:00",
 			startDate:      tue,
 			endDate:        tue,
 			service:        svc60,
@@ -494,6 +496,7 @@ func TestGetSlots(t *testing.T) {
 				require.Contains(t, result, "2030-01-08")
 				assert.Equal(t, []string{
 					"2030-01-08 08:00",
+					"2030-01-08 08:30",
 					"2030-01-08 09:00",
 				}, formatSlots(result["2030-01-08"]))
 			},
@@ -510,6 +513,106 @@ func TestGetSlots(t *testing.T) {
 				tc.bookingsMap,
 			)
 			tc.checkFn(t, result)
+		})
+	}
+}
+
+func makeAvailableException(date time.Time, startH, startM, endH, endM int) model.ScheduleOverride {
+	ex := makePartialException(date, startH, startM, endH, endM)
+	ex.IsAvailable = true
+	return ex
+}
+
+// TestGetSlotsStepAndAvailability cubre el paso de 15 min y las excepciones IsAvailable.
+// Martes 2030-01-08 con horario base 08:00-10:00.
+func TestGetSlotsStepAndAvailability(t *testing.T) {
+	ss := NewSlotsService(nil, 15*time.Minute)
+
+	tue := time.Date(2030, 1, 8, 0, 0, 0, 0, time.UTC)
+	wed := time.Date(2030, 1, 9, 0, 0, 0, 0, time.UTC)
+	tueSchedule := map[time.Weekday][]model.Schedule{
+		time.Tuesday: {makeSchedule(8, 0, 10, 0)},
+	}
+
+	tests := []struct {
+		name           string
+		day            time.Time
+		service        model.Service
+		weeklySchedule map[time.Weekday][]model.Schedule
+		exceptions     []model.ScheduleOverride
+		bookings       []model.Booking
+		want           []string // HH:MM
+	}{
+		{
+			name:           "S01: servicio de 45 min ofrece 09:15, que termina justo al cierre",
+			day:            tue,
+			service:        model.Service{DurationMinutes: 45},
+			weeklySchedule: tueSchedule,
+			want:           []string{"08:00", "08:15", "08:30", "08:45", "09:00", "09:15"},
+		},
+		{
+			name:           "S02: reserva previa de 20 min deja usable el hueco desde 08:20",
+			day:            tue,
+			service:        model.Service{DurationMinutes: 30},
+			weeklySchedule: tueSchedule,
+			bookings:       []model.Booking{makeBooking(tue.Add(8*time.Hour), 20)},
+			want:           []string{"08:20", "08:30", "08:45", "09:00", "09:15", "09:30"},
+		},
+		{
+			name:           "S03: excepción disponible extiende el horario hasta las 11:00",
+			day:            tue,
+			service:        model.Service{DurationMinutes: 60},
+			weeklySchedule: tueSchedule,
+			exceptions:     []model.ScheduleOverride{makeAvailableException(tue, 10, 0, 11, 0)},
+			want:           []string{"08:00", "08:15", "08:30", "08:45", "09:00", "09:15", "09:30", "09:45", "10:00"},
+		},
+		{
+			name:           "S04: excepción disponible en un día sin horario base",
+			day:            wed,
+			service:        model.Service{DurationMinutes: 30},
+			weeklySchedule: tueSchedule,
+			exceptions:     []model.ScheduleOverride{makeAvailableException(wed, 15, 0, 16, 0)},
+			want:           []string{"15:00", "15:15", "15:30"},
+		},
+		{
+			name:           "S05: un bloqueo de todo el día gana sobre una excepción disponible",
+			day:            tue,
+			service:        model.Service{DurationMinutes: 30},
+			weeklySchedule: tueSchedule,
+			exceptions: []model.ScheduleOverride{
+				makeAvailableException(tue, 10, 0, 11, 0),
+				makeAllDayException(tue),
+			},
+			want: nil,
+		},
+		{
+			name:           "S06: un bloqueo parcial recorta también el horario extra",
+			day:            tue,
+			service:        model.Service{DurationMinutes: 30},
+			weeklySchedule: tueSchedule,
+			exceptions: []model.ScheduleOverride{
+				makeAvailableException(tue, 10, 0, 11, 0),
+				makePartialException(tue, 9, 0, 10, 30),
+			},
+			want: []string{"08:00", "08:15", "08:30", "10:30"},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			dateKey := tc.day.Format(time.DateOnly)
+			result := ss.getSlots(
+				tc.day, tc.day,
+				tc.service,
+				tc.weeklySchedule,
+				map[string][]model.ScheduleOverride{dateKey: tc.exceptions},
+				map[string][]model.Booking{dateKey: tc.bookings},
+			)
+			var got []string
+			for _, slot := range result[dateKey] {
+				got = append(got, slot.Format("15:04"))
+			}
+			assert.Equal(t, tc.want, got)
 		})
 	}
 }

@@ -44,3 +44,11 @@ func Config(key string) string {
 	}
 	return v
 }
+
+// Get returns the value of an optional environment variable, or fallback when it's not set.
+func Get(key, fallback string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return fallback
+}
