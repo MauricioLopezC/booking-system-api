@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/MauricioLopezC/ReservationSystem/internal/common"
-"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v3"
 )
 
 type SlotsHandler struct {

@@ -132,6 +132,8 @@ definitions:
         $ref: '#/definitions/model.UserResponse'
       employeeId:
         type: integer
+      endDate:
+        type: string
       id:
         type: integer
       notes:
@@ -248,6 +250,10 @@ definitions:
         type: string
       endTime:
         type: string
+      isAvailable:
+        description: IsAvailable true adds working hours (startTime-endTime) on that
+          date instead of blocking them
+        type: boolean
       reason:
         type: string
       startTime:

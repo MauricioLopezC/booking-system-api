@@ -1,7 +1,6 @@
 package scheduleexceptions
 
 import (
-	"errors"
 	"fmt"
 	"time"
 
@@ -29,9 +28,20 @@ func (ss *ScheduleExService) Create(userID uint, scheduleExDto CreateScheduleExD
 		return nil, fmt.Errorf("%w: %s", common.ErrValidation, "an available exception must define startTime and endTime, allDay is only for days off")
 	}
 
-	dtoDate, _ := time.Parse(time.DateOnly, scheduleExDto.Date)
+	dtoDate, err := time.Parse(time.DateOnly, scheduleExDto.Date)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %s", common.ErrValidation, "date must be in YYYY-MM-DD format")
+	}
+
+	// Date > today date (both YYYY-MM-DD, so string comparison is chronological)
+	if scheduleExDto.Date <= ss.today() {
+		return nil, fmt.Errorf("%w: %s", common.ErrValidation, "exception date must be greater than current date")
+	}
+
 	schedulesFound := []model.ScheduleOverride{}
-	ss.db.Where("DATE(date) = ? AND employee_id = ?", scheduleExDto.Date, userID).Find(&schedulesFound)
+	if result := ss.db.Where("date = ? AND employee_id = ?", scheduleExDto.Date, userID).Find(&schedulesFound); result.Error != nil {
+		return nil, result.Error
+	}
 
 	if scheduleExDto.AllDay && len(schedulesFound) != 0 {
 		return nil, fmt.Errorf("%w: %s", common.ErrConflict, "there is already an exception for this date")
@@ -56,19 +66,15 @@ func (ss *ScheduleExService) Create(userID uint, scheduleExDto CreateScheduleExD
 		return nil, fmt.Errorf("%w: %s", common.ErrValidation, "startTime and endTime are required")
 	}
 
-	dtoStartTime, _ := time.ParseInLocation(time.TimeOnly, *scheduleExDto.StartTime, time.UTC)
-	dtoEndTime, _ := time.ParseInLocation(time.TimeOnly, *scheduleExDto.EndTime, time.UTC)
+	dtoStartTime, errStart := time.ParseInLocation(time.TimeOnly, *scheduleExDto.StartTime, time.UTC)
+	dtoEndTime, errEnd := time.ParseInLocation(time.TimeOnly, *scheduleExDto.EndTime, time.UTC)
+	if errStart != nil || errEnd != nil {
+		return nil, fmt.Errorf("%w: %s", common.ErrValidation, "startTime and endTime must be in HH:MM:SS format")
+	}
 
-	fmt.Println(dtoStartTime, dtoEndTime)
-	// validations
 	// Start Time < End Time
 	if !dtoStartTime.Before(dtoEndTime) {
 		return nil, fmt.Errorf("%w: %s", common.ErrValidation, "end time must be greater than the start time")
-	}
-
-	// Date > today date (both YYYY-MM-DD, so string comparison is chronological)
-	if scheduleExDto.Date <= ss.today() {
-		return nil, fmt.Errorf("%w: %s", common.ErrValidation, "exception date must be greater than current date")
 	}
 
 	hasOverlap, matchSchedule := hasScheduleExceptionOverlap(dtoStartTime, dtoEndTime, schedulesFound)
@@ -148,10 +154,14 @@ func (ss *ScheduleExService) FindAll(limit, page int, orderBy string) (*AllSched
 	}
 
 	schedules := []model.ScheduleOverride{}
-	query.Find(&schedules)
+	if err := query.Find(&schedules).Error; err != nil {
+		return nil, err
+	}
 
 	var count int64
-	ss.db.Model(&model.ScheduleOverride{}).Count(&count)
+	if err := ss.db.Model(&model.ScheduleOverride{}).Count(&count).Error; err != nil {
+		return nil, err
+	}
 
 	return &AllSchedules{
 		Data:     schedules,
@@ -168,10 +178,14 @@ func (ss *ScheduleExService) FindByUserID(limit, page int, orderBy string, userI
 	}
 
 	schedules := []model.ScheduleOverride{}
-	query.Where("date >= ? AND employee_id = ?", ss.today(), userID).Find(&schedules)
+	if err := query.Where("date >= ? AND employee_id = ?", ss.today(), userID).Find(&schedules).Error; err != nil {
+		return nil, err
+	}
 
 	var count int64
-	ss.db.Model(&model.ScheduleOverride{}).Where("date >= ? AND employee_id = ?", ss.today(), userID).Count(&count)
+	if err := ss.db.Model(&model.ScheduleOverride{}).Where("date >= ? AND employee_id = ?", ss.today(), userID).Count(&count).Error; err != nil {
+		return nil, err
+	}
 
 	return &AllSchedules{
 		Data:     schedules,
@@ -182,11 +196,13 @@ func (ss *ScheduleExService) FindByUserID(limit, page int, orderBy string, userI
 func (ss *ScheduleExService) DeleteByUserID(id, employeeID uint) (*model.ScheduleOverride, error) {
 	var deletedScheduleEx model.ScheduleOverride
 
-	if result := ss.db.Clauses(clause.Returning{}).Where("id = ? AND employee_id = ?", id, employeeID).Delete(&deletedScheduleEx); result.Error != nil {
-		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-			return nil, fmt.Errorf("%w: %s", common.ErrRecordNotFound, "schedule")
-		}
+	result := ss.db.Clauses(clause.Returning{}).Where("id = ? AND employee_id = ?", id, employeeID).Delete(&deletedScheduleEx)
+	if result.Error != nil {
 		return nil, result.Error
+	}
+	// Delete doesn't return gorm.ErrRecordNotFound, nothing deleted means not found (or not yours)
+	if result.RowsAffected == 0 {
+		return nil, fmt.Errorf("%w: %s", common.ErrRecordNotFound, "schedule exception")
 	}
 	return &deletedScheduleEx, nil
 }

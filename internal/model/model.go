@@ -51,7 +51,7 @@ type Booking struct {
 // ignore date for StartTime and EndTime, use only the time
 type Schedule struct {
 	gorm.Model
-	EmployeeID uint      `gorm:"not null"`
+	EmployeeID uint      `gorm:"not null;index"`
 	WeekDay    int       `gorm:"not null"`
 	StartTime  time.Time `gorm:"not null;type:time"`
 	EndTime    time.Time `gorm:"not null;type:time"`
@@ -61,8 +61,8 @@ type Schedule struct {
 // ScheduleOverride  for schedule exceptions
 type ScheduleOverride struct {
 	gorm.Model
-	EmployeeID  uint      `gorm:"not null"`
-	Date        time.Time `gorm:"not null;type:date"` // calendar date in the business timezone
+	EmployeeID  uint      `gorm:"not null;index:idx_overrides_employee_date"`
+	Date        time.Time `gorm:"not null;type:date;index:idx_overrides_employee_date"` // calendar date in the business timezone
 	Reason      string    `gorm:"not null"`
 	AllDay      bool      `gorm:"not null;default:false"`
 	StartTime   *time.Time

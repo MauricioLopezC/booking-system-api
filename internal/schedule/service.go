@@ -30,7 +30,7 @@ func (ss *ScheduleService) Create(userID uint, scheduleDto CreateScheduleDto) (*
 
 	dtoEndTime, err := time.ParseInLocation(layout, scheduleDto.EndTime, time.UTC)
 	if err != nil {
-		return nil, fmt.Errorf("%w: %s", common.ErrValidation, "start time must be in HH:MM format")
+		return nil, fmt.Errorf("%w: %s", common.ErrValidation, "end time must be in HH:MM format")
 	}
 
 	dtoStart := utils.NewTimeOfDay(dtoStartTime)
@@ -41,7 +41,9 @@ func (ss *ScheduleService) Create(userID uint, scheduleDto CreateScheduleDto) (*
 	}
 
 	schedulesFound := []model.Schedule{}
-	ss.db.Where("employee_id = ? AND week_day = ?", userID, scheduleDto.WeekDay).Find(&schedulesFound)
+	if result := ss.db.Where("employee_id = ? AND week_day = ?", userID, scheduleDto.WeekDay).Find(&schedulesFound); result.Error != nil {
+		return nil, result.Error
+	}
 
 	hasOverlap, matchSchedule := hasScheduleOverlap(dtoStart, dtoEnd, schedulesFound)
 
@@ -64,7 +66,9 @@ func (ss *ScheduleService) Create(userID uint, scheduleDto CreateScheduleDto) (*
 		EndTime:    dtoEndTime,
 	}
 
-	ss.db.Create(&newSchedule)
+	if result := ss.db.Create(&newSchedule); result.Error != nil {
+		return nil, result.Error
+	}
 	return &newSchedule, nil
 }
 
@@ -107,9 +111,11 @@ func (ss *ScheduleService) FindAll(limit, page int, orderBy string) (*AllSchedul
 
 func (ss *ScheduleService) FindOne(id uint) (*model.Schedule, error) {
 	schedule := new(model.Schedule)
-	result := ss.db.First(&schedule, id)
-	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		return nil, fmt.Errorf("%w: %s", common.ErrRecordNotFound, "schedule")
+	if result := ss.db.First(schedule, id); result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return nil, fmt.Errorf("%w: %s", common.ErrRecordNotFound, "schedule")
+		}
+		return nil, result.Error
 	}
 
 	return schedule, nil
@@ -127,11 +133,13 @@ func (ss *ScheduleService) FindByUserID(userID uint) ([]model.Schedule, error) {
 func (ss *ScheduleService) Delete(id uint) (*model.Schedule, error) {
 	var schedule model.Schedule
 
-	if result := ss.db.Clauses(clause.Returning{}).Delete(&schedule, id); result.Error != nil {
-		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-			return nil, fmt.Errorf("%w: %s", common.ErrRecordNotFound, "schedule")
-		}
+	result := ss.db.Clauses(clause.Returning{}).Delete(&schedule, id)
+	if result.Error != nil {
 		return nil, result.Error
+	}
+	// Delete doesn't return gorm.ErrRecordNotFound, nothing deleted means not found
+	if result.RowsAffected == 0 {
+		return nil, fmt.Errorf("%w: %s", common.ErrRecordNotFound, "schedule")
 	}
 	return &schedule, nil
 }
@@ -139,11 +147,13 @@ func (ss *ScheduleService) Delete(id uint) (*model.Schedule, error) {
 func (ss *ScheduleService) DeleteByUserID(id, userID uint) (*model.Schedule, error) {
 	var schedule model.Schedule
 
-	if result := ss.db.Clauses(clause.Returning{}).Where("employee_id = ? AND id = ?", userID, id).Delete(&schedule); result.Error != nil {
-		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-			return nil, fmt.Errorf("%w: %s", common.ErrRecordNotFound, "schedule")
-		}
+	result := ss.db.Clauses(clause.Returning{}).Where("employee_id = ? AND id = ?", userID, id).Delete(&schedule)
+	if result.Error != nil {
 		return nil, result.Error
+	}
+	// Delete doesn't return gorm.ErrRecordNotFound, nothing deleted means not found (or not yours)
+	if result.RowsAffected == 0 {
+		return nil, fmt.Errorf("%w: %s", common.ErrRecordNotFound, "schedule")
 	}
 	return &schedule, nil
 }

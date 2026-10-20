@@ -28,7 +28,7 @@ func ConnectDB() {
 		config.Config("DB_NAME"),
 	)
 
-	db, err := Open(dsn, logger.Info)
+	db, err := Open(dsn, logLevel(config.Get("DB_LOG_LEVEL", "warn")))
 	if err != nil {
 		log.Fatal("Failed to connect to database. \n", err)
 	}
@@ -36,6 +36,21 @@ func ConnectDB() {
 
 	DB = Dbinstance{
 		Db: db,
+	}
+}
+
+// logLevel maps DB_LOG_LEVEL (silent | error | warn | info) to a GORM log level.
+// "info" logs every SQL statement, useful in development only.
+func logLevel(name string) logger.LogLevel {
+	switch name {
+	case "silent":
+		return logger.Silent
+	case "error":
+		return logger.Error
+	case "info":
+		return logger.Info
+	default:
+		return logger.Warn
 	}
 }
 

@@ -9,8 +9,8 @@ import (
 	"github.com/MauricioLopezC/ReservationSystem/config"
 	"github.com/MauricioLopezC/ReservationSystem/internal/common"
 	"github.com/MauricioLopezC/ReservationSystem/internal/model"
+	"github.com/MauricioLopezC/ReservationSystem/internal/utils"
 	"github.com/golang-jwt/jwt/v5"
-	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
@@ -28,24 +28,26 @@ func NewAuthService(db *gorm.DB) *AuthService {
 	return &AuthService{db: db}
 }
 
-func checkPasswordHash(password string, hashedPassword string) bool {
-	err := bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
-	return err == nil
-}
+// dummyHash is a valid bcrypt hash (cost utils.PasswordCost) of a random string, compared
+// against when the email doesn't exist.
+const dummyHash = "$2a$12$C6UzMDM.H6dfI/f/IKcEeO5S7x0Nu0zLx0FS1VY9z0Bj6CjK7FT6K"
 
 func (as *AuthService) Login(loginDto LoginDto) (*LoginResponse, error) {
 	// get user by email
 	var user model.User
 	if result := as.db.Where("email = ?", loginDto.Email).First(&user); result.Error != nil {
+		// Same answer and same bcrypt work as a wrong password, so neither the message
+		// nor the response time reveals which emails are registered
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-			return nil, fmt.Errorf("%w: %s", common.ErrRecordNotFound, "Wrong email!")
+			utils.CheckPasswordHash(loginDto.Password, dummyHash)
+			return nil, fmt.Errorf("%w: %s", common.ErrUnauthorized, "invalid email or password")
 		}
 		return nil, result.Error
 	}
 
 	// check password
-	if !checkPasswordHash(loginDto.Password, user.Password) {
-		return nil, fmt.Errorf("%w: %s", common.ErrUnauthorized, "Wrong password!")
+	if !utils.CheckPasswordHash(loginDto.Password, user.Password) {
+		return nil, fmt.Errorf("%w: %s", common.ErrUnauthorized, "invalid email or password")
 	}
 
 	token := jwt.New(jwt.SigningMethodHS256)
@@ -75,11 +77,6 @@ func (as *AuthService) Login(loginDto LoginDto) (*LoginResponse, error) {
 	}, nil
 }
 
-func hashPassword(password string) (string, error) {
-	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)
-	return string(bytes), err
-}
-
 func (as *AuthService) Register(userDto CreateUserDto) (*model.User, error) {
 	// check if user already exists
 	var existingUser model.User
@@ -90,7 +87,7 @@ func (as *AuthService) Register(userDto CreateUserDto) (*model.User, error) {
 		return nil, errors.New("database error")
 	}
 
-	hash, err := hashPassword(userDto.Password)
+	hash, err := utils.HashPassword(userDto.Password)
 	if err != nil {
 		return nil, errors.New("couldn't hash password")
 	}

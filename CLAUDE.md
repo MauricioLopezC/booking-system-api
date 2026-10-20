@@ -46,6 +46,7 @@ SECRET=<jwt_secret_key>
 
 All 6 variables are mandatory — startup fails if any are missing. Optional:
 - `SLOT_STEP_MINUTES` (default 15): grid between offered slot start times.
+- `DB_LOG_LEVEL` (`silent | error | warn | info`, default `warn`): `info` logs every SQL statement.
 - `BUSINESS_TIMEZONE` (default `UTC`, IANA name like `America/Argentina/Buenos_Aires`): schedules and exceptions are wall-clock times in this zone; slot days are local dates; instants are stored and returned in UTC. The process timezone (`time.Local`) is forced to UTC at startup because postgres `time` columns are read in `time.Local`; this is independent of `BUSINESS_TIMEZONE`.
 
 ## Architecture
@@ -55,7 +56,7 @@ REST API for a booking/reservation system. Stack: **Fiber v3** (HTTP), **GORM** 
 **Layered pattern:** Handler → Service → Database (GORM). Services and handlers are instantiated in `cmd/api/main.go` and wired via initialization functions.
 
 **Key packages under `internal/`:**
-- `auth/` — JWT login/register, bcrypt password hashing
+- `auth/` — JWT login/register; passwords hashed with `utils.HashPassword` (bcrypt cost 12); login returns the same 401 for unknown email and wrong password
 - `user/` — User CRUD, roles: `admin | employee | customer`
 - `bookings/` — Reservation management; `EndDate` is stored at creation time; the `bookings_no_overlap` exclusion constraint (postgres, `btree_gist`) prevents overlapping active bookings per employee; max 14 days ahead
 - `schedule/` — Weekly recurring employee schedules (weekday + start/end time)

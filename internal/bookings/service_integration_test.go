@@ -230,3 +230,21 @@ func TestBusinessTimezoneAllDayException(t *testing.T) {
 	_, err = f.svc.CreateBooking(f.dto(f.at(21, 0)), f.customer.ID)
 	assert.ErrorIs(t, err, common.ErrConflict)
 }
+
+func TestCancelPermissions(t *testing.T) {
+	f := newFixture(t)
+
+	booking, err := f.svc.CreateBooking(f.dto(f.at(10, 0)), f.customer.ID)
+	require.NoError(t, err)
+
+	other := model.User{Name: "other", Email: "other@test.com", Phone: "3", Password: "x", Role: model.RoleCustomer.String()}
+	admin := model.User{Name: "admin", Email: "admin@test.com", Phone: "4", Password: "x", Role: model.RoleAdmin.String()}
+	require.NoError(t, f.db.Create(&other).Error)
+	require.NoError(t, f.db.Create(&admin).Error)
+
+	_, err = f.svc.CancelBooking(booking.ID, other.ID, model.RoleCustomer.String())
+	assert.ErrorIs(t, err, common.ErrUnauthorized, "a customer can't cancel someone else's booking")
+
+	_, err = f.svc.CancelBooking(booking.ID, admin.ID, model.RoleAdmin.String())
+	assert.NoError(t, err, "an admin can cancel any booking")
+}

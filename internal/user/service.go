@@ -6,7 +6,7 @@ import (
 
 	"github.com/MauricioLopezC/ReservationSystem/internal/common"
 	"github.com/MauricioLopezC/ReservationSystem/internal/model"
-	"golang.org/x/crypto/bcrypt"
+	"github.com/MauricioLopezC/ReservationSystem/internal/utils"
 	"gorm.io/gorm"
 )
 
@@ -66,11 +66,6 @@ func (us *UsersService) FindOne(id uint) (*model.User, error) {
 // 	return &user, nil
 // }
 
-func hashPassword(password string) (string, error) {
-	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)
-	return string(bytes), err
-}
-
 func (us *UsersService) Update(id uint, userDto UpdateUserDto) (*model.User, error) {
 	var user model.User
 	if restult := us.db.First(&user, id); restult.Error != nil {
@@ -94,7 +89,7 @@ func (us *UsersService) Update(id uint, userDto UpdateUserDto) (*model.User, err
 
 	if userDto.Password != nil {
 		//hash passwrod first
-		hash, err := hashPassword(*userDto.Password)
+		hash, err := utils.HashPassword(*userDto.Password)
 		if err != nil {
 			return nil, err
 		}

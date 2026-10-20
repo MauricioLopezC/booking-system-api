@@ -8,7 +8,7 @@ import (
 
 	"github.com/MauricioLopezC/ReservationSystem/internal/database"
 	"github.com/MauricioLopezC/ReservationSystem/internal/model"
-	"golang.org/x/crypto/bcrypt"
+	"github.com/MauricioLopezC/ReservationSystem/internal/utils"
 	"gorm.io/gorm"
 )
 
@@ -31,11 +31,11 @@ func Reset(db *gorm.DB) error {
 }
 
 func hashPassword(password string) string {
-	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)
+	hash, err := utils.HashPassword(password)
 	if err != nil {
 		log.Fatalf("seed: failed to hash password: %v", err)
 	}
-	return string(bytes)
+	return hash
 }
 
 // SeedServices creates initial services if they don't exist.

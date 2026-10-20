@@ -1646,6 +1646,9 @@ const docTemplate = `{
                 "employeeId": {
                     "type": "integer"
                 },
+                "endDate": {
+                    "type": "string"
+                },
                 "id": {
                     "type": "integer"
                 },
@@ -1824,6 +1827,10 @@ const docTemplate = `{
                 },
                 "endTime": {
                     "type": "string"
+                },
+                "isAvailable": {
+                    "description": "IsAvailable true adds working hours (startTime-endTime) on that date instead of blocking them",
+                    "type": "boolean"
                 },
                 "reason": {
                     "type": "string"

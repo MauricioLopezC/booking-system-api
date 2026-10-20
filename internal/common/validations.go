@@ -14,22 +14,24 @@ func EmployeeHasService(db *gorm.DB, employeeID, serviceID uint) (bool, error) {
 	return count > 0, nil
 }
 
+// UserHasBooking reports whether the user can act on the booking: admins on any booking,
+// employees on the ones they attend and customers on the ones they made.
 func UserHasBooking(db *gorm.DB, userID, bookingID uint, userRole string) (bool, error) {
+	query := db.Model(&model.Booking{}).Where("id = ?", bookingID)
+
+	switch userRole {
+	case model.RoleAdmin.String():
+	case model.RoleEmployee.String():
+		query = query.Where("employee_id = ?", userID)
+	case model.RoleCustomer.String():
+		query = query.Where("customer_id = ?", userID)
+	default:
+		return false, nil
+	}
+
 	var count int64
-
-	if userRole == model.RoleAdmin.String() || userRole == model.RoleEmployee.String() {
-		result := db.Table("bookings").Where("id = ? AND employee_id = ?", bookingID, userID).Count(&count)
-		if result.Error != nil {
-			return false, result.Error
-		}
+	if err := query.Count(&count).Error; err != nil {
+		return false, err
 	}
-
-	if userRole == model.RoleCustomer.String() {
-		result := db.Table("bookings").Where("id = ? AND customer_id = ?", bookingID, userID).Count(&count)
-		if result.Error != nil {
-			return false, result.Error
-		}
-	}
-
 	return count > 0, nil
 }
