@@ -1,0 +1,9 @@
+.git
+.env
+*.test
+*.out
+coverage.*
+reservation-api
+seed
+compose.yaml
+Dockerfile
