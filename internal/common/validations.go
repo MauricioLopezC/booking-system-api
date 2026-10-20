@@ -35,3 +35,14 @@ func UserHasBooking(db *gorm.DB, userID, bookingID uint, userRole string) (bool,
 	}
 	return count > 0, nil
 }
+
+// lockNamespaceEmployeeAgenda namespaces the advisory locks taken on an employee's agenda.
+const lockNamespaceEmployeeAgenda = 1
+
+// LockEmployeeAgenda serializes, until tx commits or rolls back, the operations that check
+// an employee's agenda and then change it: creating a booking and creating a blocking
+// schedule exception. Without it a booking could slip in between an exception's
+// conflict check and its insert (or vice versa).
+func LockEmployeeAgenda(tx *gorm.DB, employeeID uint) error {
+	return tx.Exec("SELECT pg_advisory_xact_lock(?::int, ?::int)", lockNamespaceEmployeeAgenda, int32(employeeID)).Error
+}

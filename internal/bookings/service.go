@@ -46,20 +46,6 @@ func (bs *BookingsService) CreateBooking(bookingDto BookingDto, customerID uint)
 		return nil, result.Error
 	}
 
-	availableSlots, err := bs.slotsService.FindAvailableSlots(bookingDto.EmployeeID, bookingDto.ServiceID, bookingDate, bookingDate)
-	if err != nil {
-		return nil, err
-	}
-
-	bookingDateKey := bs.slotsService.DateKey(bookingDate)
-	daySlots, ok := availableSlots[bookingDateKey]
-	if !ok {
-		return nil, fmt.Errorf("%w: %s", common.ErrConflict, "There are no available appointments for the booking date")
-	}
-	if !slices.ContainsFunc(daySlots, bookingDate.Equal) {
-		return nil, fmt.Errorf("%w: %s", common.ErrConflict, "The booking time doesn't match any available slot for the day")
-	}
-
 	booking := model.Booking{
 		CustomerID:  customerID,
 		EmployeeID:  bookingDto.EmployeeID,
@@ -70,13 +56,37 @@ func (bs *BookingsService) CreateBooking(bookingDto BookingDto, customerID uint)
 		Notes:       bookingDto.Notes,
 	}
 
-	// The slot check above can race with a concurrent request; the
-	// bookings_no_overlap constraint is the real guarantee.
-	if result := bs.db.Create(&booking); result.Error != nil {
-		if common.IsExclusionViolation(result.Error) {
-			return nil, fmt.Errorf("%w: %s", common.ErrConflict, "The booking has already been reserved!")
+	err := bs.db.Transaction(func(tx *gorm.DB) error {
+		// Serializes with schedule exception creation: an exception can't be created
+		// between this slot check and the insert. Overlaps between bookings are
+		// guaranteed by the bookings_no_overlap constraint either way.
+		if err := common.LockEmployeeAgenda(tx, bookingDto.EmployeeID); err != nil {
+			return err
 		}
-		return nil, result.Error
+
+		availableSlots, err := bs.slotsService.WithDB(tx).FindAvailableSlots(bookingDto.EmployeeID, bookingDto.ServiceID, bookingDate, bookingDate)
+		if err != nil {
+			return err
+		}
+
+		daySlots, ok := availableSlots[bs.slotsService.DateKey(bookingDate)]
+		if !ok {
+			return fmt.Errorf("%w: %s", common.ErrConflict, "There are no available appointments for the booking date")
+		}
+		if !slices.ContainsFunc(daySlots, bookingDate.Equal) {
+			return fmt.Errorf("%w: %s", common.ErrConflict, "The booking time doesn't match any available slot for the day")
+		}
+
+		if err := tx.Create(&booking).Error; err != nil {
+			if common.IsExclusionViolation(err) {
+				return fmt.Errorf("%w: %s", common.ErrConflict, "The booking has already been reserved!")
+			}
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
 	}
 
 	return &booking, nil

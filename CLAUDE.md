@@ -60,7 +60,7 @@ REST API for a booking/reservation system. Stack: **Fiber v3** (HTTP), **GORM** 
 - `user/` — User CRUD, roles: `admin | employee | customer`
 - `bookings/` — Reservation management; `EndDate` is stored at creation time; the `bookings_no_overlap` exclusion constraint (postgres, `btree_gist`) prevents overlapping active bookings per employee; max 14 days ahead
 - `schedule/` — Weekly recurring employee schedules (weekday + start/end time)
-- `schedule_exceptions/` — Overrides to base schedule (all-day or partial time blocks, with `IsAvailable` flag)
+- `schedule_exceptions/` — Overrides to base schedule (all-day or partial time blocks, with `IsAvailable` flag). A blocking exception that overlaps active bookings is rejected with 409 `ConflictResponse` listing them; creating bookings and exceptions both take `common.LockEmployeeAgenda` (postgres advisory lock) so they can't race
 - `slots/` — **Core business logic**: per day, free time = (weekly schedule + `IsAvailable` exceptions) − (blocking exceptions + active bookings), computed with pure interval functions in `intervals.go`. Each free interval offers its own start and then points of a `SLOT_STEP_MINUTES` grid where the service fits. Most heavily tested package.
 - `services/` — Haircut/beauty services (name, duration_minutes, price); many-to-many with User
 - `model/` — All GORM model definitions and enums in one file

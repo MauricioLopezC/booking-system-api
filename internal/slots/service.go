@@ -28,6 +28,13 @@ func NewSlotsService(db *gorm.DB, step time.Duration, loc *time.Location) *Slots
 	return &SlotsService{db: db, step: step, loc: loc}
 }
 
+// WithDB returns a copy of the service that runs its queries on db (e.g. a transaction).
+func (ss *SlotsService) WithDB(db *gorm.DB) *SlotsService {
+	c := *ss
+	c.db = db
+	return &c
+}
+
 // Location returns the business timezone.
 func (ss *SlotsService) Location() *time.Location {
 	return ss.loc

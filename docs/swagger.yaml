@@ -242,6 +242,30 @@ definitions:
     - endTime
     - startTime
     type: object
+  scheduleexceptions.BookingConflict:
+    properties:
+      bookingDate:
+        type: string
+      bookingId:
+        type: integer
+      customerName:
+        type: string
+      customerPhone:
+        type: string
+      endDate:
+        type: string
+    type: object
+  scheduleexceptions.ConflictResponse:
+    properties:
+      conflicts:
+        items:
+          $ref: '#/definitions/scheduleexceptions.BookingConflict'
+        type: array
+      message:
+        type: string
+      statusCode:
+        type: integer
+    type: object
   scheduleexceptions.CreateScheduleExDto:
     properties:
       allDay:
@@ -670,9 +694,9 @@ paths:
           schema:
             $ref: '#/definitions/common.ErrorResponse'
         "409":
-          description: Conflict
+          description: Overlaps another exception, or active bookings (listed in conflicts)
           schema:
-            $ref: '#/definitions/common.ErrorResponse'
+            $ref: '#/definitions/scheduleexceptions.ConflictResponse'
       security:
       - BearerAuth: []
       summary: Create a schedule exception

@@ -549,9 +549,9 @@ const docTemplate = `{
                         }
                     },
                     "409": {
-                        "description": "Conflict",
+                        "description": "Overlaps another exception, or active bookings (listed in conflicts)",
                         "schema": {
-                            "$ref": "#/definitions/common.ErrorResponse"
+                            "$ref": "#/definitions/scheduleexceptions.ConflictResponse"
                         }
                     }
                 }
@@ -1810,6 +1810,43 @@ const docTemplate = `{
                     "type": "integer",
                     "maximum": 6,
                     "minimum": 0
+                }
+            }
+        },
+        "scheduleexceptions.BookingConflict": {
+            "type": "object",
+            "properties": {
+                "bookingDate": {
+                    "type": "string"
+                },
+                "bookingId": {
+                    "type": "integer"
+                },
+                "customerName": {
+                    "type": "string"
+                },
+                "customerPhone": {
+                    "type": "string"
+                },
+                "endDate": {
+                    "type": "string"
+                }
+            }
+        },
+        "scheduleexceptions.ConflictResponse": {
+            "type": "object",
+            "properties": {
+                "conflicts": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/scheduleexceptions.BookingConflict"
+                    }
+                },
+                "message": {
+                    "type": "string"
+                },
+                "statusCode": {
+                    "type": "integer"
                 }
             }
         },

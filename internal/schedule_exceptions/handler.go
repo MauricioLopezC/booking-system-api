@@ -28,7 +28,7 @@ func NewScheduleExHandler(ss *ScheduleExService) *ScheduleExHandler {
 // @Success      201   {object}  model.ScheduleOverrideResponse
 // @Failure      400   {object}  common.ErrorResponse
 // @Failure      401   {object}  common.ErrorResponse
-// @Failure      409   {object}  common.ErrorResponse
+// @Failure      409   {object}  ConflictResponse  "Overlaps another exception, or active bookings (listed in conflicts)"
 // @Router       /me/schedule-exceptions [post]
 func (h *ScheduleExHandler) CreateMyScheduleEx(c fiber.Ctx) error {
 	scheduleDto := new(CreateScheduleExDto)
@@ -59,6 +59,10 @@ func (h *ScheduleExHandler) CreateMyScheduleEx(c fiber.Ctx) error {
 				StatusCode: fiber.StatusBadRequest,
 				Message:    err.Error(),
 			})
+		}
+		var bookingsErr *ConflictingBookingsError
+		if errors.As(err, &bookingsErr) {
+			return c.Status(fiber.StatusConflict).JSON(newConflictResponse(bookingsErr))
 		}
 		if errors.Is(err, common.ErrConflict) {
 			return c.Status(fiber.StatusConflict).JSON(common.ErrorResponse{
