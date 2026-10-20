@@ -2,9 +2,13 @@
 package config
 
 import (
+	"errors"
 	"fmt"
+	"io/fs"
 	"log"
 	"os"
+	"time"
+	_ "time/tzdata" // BUSINESS_TIMEZONE works even on images without system tzdata
 
 	"github.com/joho/godotenv"
 )
@@ -18,11 +22,12 @@ var requiredVars = []string{
 	"SECRET",
 }
 
-// Load reads the .env file and validates all required environment variables.
+// Load reads the .env file (optional: variables may come from the real
+// environment, e.g. in a container) and validates all required environment variables.
 // Must be called once at startup before anything else.
 func Load() {
-	if err := godotenv.Load(); err != nil {
-		log.Fatal("Error loading .env file")
+	if err := godotenv.Load(); err != nil && !errors.Is(err, fs.ErrNotExist) {
+		log.Fatalf("Error loading .env file: %v", err)
 	}
 
 	var missing []string
@@ -51,4 +56,10 @@ func Get(key, fallback string) string {
 		return v
 	}
 	return fallback
+}
+
+// BusinessLocation returns the business timezone from BUSINESS_TIMEZONE (IANA name, default UTC).
+// Schedules and exceptions are wall-clock times in this zone.
+func BusinessLocation() (*time.Location, error) {
+	return time.LoadLocation(Get("BUSINESS_TIMEZONE", "UTC"))
 }

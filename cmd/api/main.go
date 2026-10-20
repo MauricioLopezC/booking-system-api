@@ -17,7 +17,6 @@ import (
 	"github.com/gofiber/fiber/v3"
 
 	_ "github.com/MauricioLopezC/ReservationSystem/docs"
-	_ "time/tzdata" // BUSINESS_TIMEZONE works even on images without system tzdata
 )
 
 // @title           Reservation System API
@@ -53,7 +52,7 @@ func main() {
 	if err != nil || slotStep <= 0 {
 		log.Fatalf("SLOT_STEP_MINUTES must be a positive integer")
 	}
-	businessLoc, err := time.LoadLocation(config.Get("BUSINESS_TIMEZONE", "UTC"))
+	businessLoc, err := config.BusinessLocation()
 	if err != nil {
 		log.Fatalf("invalid BUSINESS_TIMEZONE: %v", err)
 	}
@@ -86,5 +85,5 @@ func main() {
 		usersHandler,
 	)
 
-	log.Fatal(app.Listen(":3000"))
+	log.Fatal(app.Listen(":" + config.Get("PORT", "3000")))
 }

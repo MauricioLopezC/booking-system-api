@@ -45,7 +45,12 @@ func main() {
 		log.Fatalf("seed: %v", err)
 	}
 
-	if err := seed.SeedBookings(db, customers, employees, services); err != nil {
+	businessLoc, err := config.BusinessLocation()
+	if err != nil {
+		log.Fatalf("seed: invalid BUSINESS_TIMEZONE: %v", err)
+	}
+
+	if err := seed.SeedBookings(db, customers, employees, services, businessLoc); err != nil {
 		log.Fatalf("seed: %v", err)
 	}
 

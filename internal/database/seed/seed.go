@@ -159,15 +159,16 @@ func SeedSchedules(db *gorm.DB, employees []*model.User) error {
 	return nil
 }
 
-// SeedBookings creates a few sample bookings.
-func SeedBookings(db *gorm.DB, customers []*model.User, employees []*model.User, services []*model.Service) error {
-	now := time.Now().UTC()
+// SeedBookings creates a few sample bookings next Monday, at local times of the
+// business timezone loc so they fall inside the seeded schedules.
+func SeedBookings(db *gorm.DB, customers []*model.User, employees []*model.User, services []*model.Service, loc *time.Location) error {
+	now := time.Now().In(loc)
 	// Next Monday at 10:00
 	daysUntilMonday := (8 - int(now.Weekday())) % 7
 	if daysUntilMonday == 0 {
 		daysUntilMonday = 7
 	}
-	monday := time.Date(now.Year(), now.Month(), now.Day()+daysUntilMonday, 10, 0, 0, 0, time.UTC)
+	monday := time.Date(now.Year(), now.Month(), now.Day()+daysUntilMonday, 10, 0, 0, 0, loc).UTC()
 
 	seeds := []model.Booking{
 		{
